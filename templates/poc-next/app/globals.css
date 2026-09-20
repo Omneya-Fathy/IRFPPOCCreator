@@ -1,0 +1,15 @@
+:root {
+  color: #111;
+  background: #f6f6f6;
+  font-family: system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  padding: 1.5rem;
+}
+
+a[href^="http://"],
+a[href^="https://"] {
+  pointer-events: none;
+}

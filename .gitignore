@@ -1,0 +1,17 @@
+node_modules/
+.next/
+dist/
+coverage/
+*.log
+.env
+.env.*
+!.env.example
+
+pocs/*/.run/
+pocs/*/node_modules/
+pocs/*/.next/
+pocs/*/dist/
+pocs/*/coverage/
+
+.DS_Store
+Thumbs.db

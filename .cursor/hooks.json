@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "hooks": {
+    "subagentStart": [
+      {
+        "command": "node .cursor/hooks/rfp-before-analyst.mjs",
+        "failClosed": true,
+        "timeout": 15
+      }
+    ],
+    "beforeShellExecution": [
+      {
+        "command": "node .cursor/hooks/vitest-before-submit.mjs",
+        "failClosed": true,
+        "timeout": 15
+      }
+    ],
+    "preToolUse": [
+      {
+        "command": "node .cursor/hooks/protect-orchestrator.mjs",
+        "matcher": "Write|StrReplace|Delete|EditNotebook",
+        "failClosed": true,
+        "timeout": 15
+      }
+    ],
+    "afterFileEdit": [
+      {
+        "command": "node .cursor/hooks/protect-orchestrator.mjs",
+        "failClosed": true,
+        "timeout": 15
+      }
+    ]
+  }
+}

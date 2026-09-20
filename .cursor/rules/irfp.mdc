@@ -1,0 +1,16 @@
+---
+description: IRFP POC Creator — hard rules and write path for every agent in this repo.
+alwaysApply: true
+---
+
+# IRFP rules
+
+Follow `Readme.md` and `AGENTS.md`. Entry skill: `irfp-orchestrator`.
+
+- Generate under `pocs/<JIRA-KEY>/` only.
+- Do not invent business rules. Ask the PR author.
+- Do not push if Vitest failed. Do not force-push.
+- No secrets, no real customer data, no clickable `http(s)` links in POC UI or markdown.
+- Framework: RFP wins; else Next.js App Router + TypeScript.
+- Code only after the PR author comments `/approve`. `/revise` means update plan docs and wait.
+- Docs source of truth: `pocs/<JIRA-KEY>/docs/`.
