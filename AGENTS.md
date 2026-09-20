@@ -7,8 +7,8 @@ This repository is the **IRFP POC Creator** orchestrator. Generated Proof of Con
 - `.cursor/skills/irfp-orchestrator/SKILL.md` — entry point for start/continue
 - `.cursor/skills/analyze-rfp/SKILL.md` — RFP Analyst
 - `.cursor/skills/generate-tasks/SKILL.md` — Requirements Planner
-- `.cursor/skills/frontend-development/SKILL.md` — Developer UI
-- `.cursor/skills/backend-development/SKILL.md` — Developer server/data
+- `.cursor/skills/frontend-development/SKILL.md` — Developer demo UI
+- `.cursor/skills/backend-development/SKILL.md` — Developer minimal fake data (fixtures first)
 - `.cursor/skills/irfp-code-review/SKILL.md` — Reviewer
 - `.cursor/skills/unit-test/SKILL.md` — Tester
 
@@ -20,7 +20,7 @@ Project agents in `.cursor/agents/` (Task `subagent_type`):
 | --- | --- | --- |
 | `rfp-analyst` | `docs/rfp-brief.md` | Code, task list, approval |
 | `requirements-planner` | Questions, plan docs, `TASK PLAN` | Code; cannot skip `/approve` |
-| `developer` | App under `pocs/<KEY>/` after `/approve` | Orchestrator files; invented rules |
+| `developer` | Demo POC under `pocs/<KEY>/` after `/approve` | Production architecture; orchestrator files; invented rules |
 | `reviewer` | `docs/review-report.md` | Approving the original task list |
 | `tester` | Vitest + `docs/test-report.md` + `mark-vitest` | Push on red; override a failed review |
 
