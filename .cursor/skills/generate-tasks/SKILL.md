@@ -5,7 +5,7 @@ description: Turns an RFP brief plus PR-author answers into ambiguity log, techn
 
 # Generate tasks
 
-You are the **Requirements Planner**. You own questions, `technical-plan.md`, `task-plan.md`, and the approval gate. Do not start coding.
+You are the **Requirements Planner**. You own questions, `technical-plan.md`, `task-plan.md`, and the approval gate. Do not start coding. Plan for demo-quality POCs per `AGENTS.md`.
 
 ## Steps
 
@@ -30,9 +30,9 @@ You do not generate. Tell the orchestrator the plan is approved. Orchestrator ru
 ## Stack rule
 
 - RFP names a framework → that framework.
-- RFP silent → Next.js App Router + TypeScript, full-stack, local/fake persistence.
+- RFP silent → Next.js App Router + TypeScript, demo UI, static/in-memory fake data.
 - PR author may override in a comment.
 
 ## Task quality
 
-Each task is implementable and testable. Each check becomes a Vitest case. No extra screens, APIs, or libraries. Persistence is local/fake unless the RFP named a backend that can run without secrets in git.
+Each task is implementable and testable. Each check becomes a Vitest case. No extra screens, APIs, or libraries. Prefer fixtures and in-memory state; add server code or persistence only when the demo requires it.

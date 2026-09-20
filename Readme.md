@@ -44,9 +44,9 @@ Connect Jira MCP, then create the two Cloud Agent automations (`docs/setup.md` a
 | Ambiguity + task approval | Comments on the PR |
 | Who may answer / approve | **PR author only** |
 | Where code goes | Commits on the existing PR, in `pocs/<JIRA-KEY>/` |
-| Default stack | Next.js App Router + TypeScript, full-stack, local/fake persistence |
+| Default stack | Next.js App Router + TypeScript, demo UI, static/in-memory fake data |
 | If the RFP names another framework | **RFP wins.** Rule 5 (Next.js) applies only when the RFP is silent |
-| POC depth | Full-stack Next.js with local/fake persistence (unless the RFP named another framework) |
+| POC depth | Demo-quality UI with minimal fake data; server code only when the approved plan requires it (unless the RFP named another framework) |
 | Unit tests | **Vitest.** Must pass before push |
 | External links | No clickable `http(s)` links in the UI or markdown. Local assets and npm packages are allowed |
 | Approval commands | PR author uses `/approve` or `/revise` in PR comments |
@@ -88,7 +88,7 @@ Ready PR opened (Jira key in title or body)
   → Planner posts the task list → write docs/technical-plan.md + docs/task-plan.md
   → PR author comments /approve
   → Developer: app in pocs/<JIRA-KEY>/
-       stack = RFP framework if named, else Next.js full-stack local
+       stack = RFP framework if named, else Next.js demo UI + fake data
   → Reviewer: diff vs RFP + hard rules
   → Tester: Vitest
   → Hook: tests pass?
@@ -247,11 +247,12 @@ If the attachment is not plain text (PDF, DOCX, and so on), the analyst still ex
 
 ## POC technical defaults
 
-Apply when the RFP is silent. If the RFP names a different framework or UI kit, follow the RFP.
+Apply when the RFP is silent. If the RFP names a different framework or UI kit, follow the RFP. All agents follow `AGENTS.md`.
 
 - Next.js App Router + TypeScript at `pocs/<JIRA-KEY>/`.
-- Full-stack in Next.js (UI + Route Handlers or Server Actions).
-- Persistence: local/fake only (in-repo JSON, SQLite file, or in-memory). Not a hosted database.
+- Demo UI wired to static or in-memory fake data by default.
+- Route Handlers or Server Actions only when the approved plan requires server round-trips.
+- Persistence: fixtures and in-memory state first; local JSON only if refresh must keep data; SQLite only if the RFP required it. Not a hosted database.
 - No auth vendor unless the approved plan names one **and** it can run with fake/local users.
 - UI follows the RFP spec; no extra component library unless the RFP or the PR author names one.
 - Package installs via npm/pnpm are allowed. Runtime fetch of `https://` URLs in the UI is not.
