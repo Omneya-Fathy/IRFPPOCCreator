@@ -1,380 +1,305 @@
-export type Book = {
-  isbn: string;
-  title: string;
-  author: string;
-  genre: string;
-  price: number;
-  hawthorneQty: number;
-  cedarQty: number;
-};
+import {
+  initialAuthors,
+  initialBooks,
+  initialFeaturedIds,
+  initialGenres,
+} from "../data/fixtures";
+import type {
+  Author,
+  Book,
+  CartLine,
+  DeliveryAddress,
+  Genre,
+  Order,
+  PaymentDetails,
+} from "./types";
 
-export type CartItem = {
-  isbn: string;
-  quantity: number;
-};
-
-export type OrderLineItem = {
-  isbn: string;
-  title: string;
-  quantity: number;
-  price: number;
-};
-
-export type DeliveryAddress = {
-  fullName: string;
-  email: string;
-  street: string;
-  city: string;
-  governorate: string;
-  postalCode: string;
-  country: string;
-};
-
-export type Order = {
-  id: string;
-  createdAt: string;
-  items: OrderLineItem[];
-  address: DeliveryAddress;
-  total: number;
-};
-
-export type EmailPayload = {
-  id: string;
-  orderId: string;
-  to: string;
-  subject: string;
-  body: string;
-  createdAt: string;
-};
-
-const SEED_BOOKS: Book[] = [
-  {
-    isbn: "9780141439518",
-    title: "Pride and Prejudice",
-    author: "Jane Austen",
-    genre: "Classic",
-    price: 12.99,
-    hawthorneQty: 5,
-    cedarQty: 2,
-  },
-  {
-    isbn: "9780061120084",
-    title: "To Kill a Mockingbird",
-    author: "Harper Lee",
-    genre: "Fiction",
-    price: 14.5,
-    hawthorneQty: 0,
-    cedarQty: 3,
-  },
-  {
-    isbn: "9780451524935",
-    title: "1984",
-    author: "George Orwell",
-    genre: "Science Fiction",
-    price: 11.99,
-    hawthorneQty: 0,
-    cedarQty: 0,
-  },
-  {
-    isbn: "9780743273565",
-    title: "The Great Gatsby",
-    author: "F. Scott Fitzgerald",
-    genre: "Classic",
-    price: 10.99,
-    hawthorneQty: 4,
-    cedarQty: 0,
-  },
-  {
-    isbn: "9780316769488",
-    title: "The Catcher in the Rye",
-    author: "J.D. Salinger",
-    genre: "Fiction",
-    price: 13.25,
-    hawthorneQty: 2,
-    cedarQty: 1,
-  },
-  {
-    isbn: "9780140283334",
-    title: "The Hobbit",
-    author: "J.R.R. Tolkien",
-    genre: "Fantasy",
-    price: 15.99,
-    hawthorneQty: 6,
-    cedarQty: 4,
-  },
-];
-
-const DEFAULT_FEATURED = [
-  "9780141439518",
-  "9780061120084",
-  "9780140283334",
-];
-
-let books: Book[] = SEED_BOOKS.map((book) => ({ ...book }));
-let cart: CartItem[] = [];
+let books: Book[] = [];
+let genres: Genre[] = [];
+let authors: Author[] = [];
+let featuredIds: string[] = [];
+let cart: CartLine[] = [];
 let orders: Order[] = [];
-let featuredIsbns: string[] = [...DEFAULT_FEATURED];
-let emailLog: EmailPayload[] = [];
-let orderCounter = 1;
-let emailCounter = 1;
+let lastOrderId: string | null = null;
+
+function cloneBooks(source: Book[]): Book[] {
+  return source.map((book) => ({ ...book }));
+}
 
 export function resetStore(): void {
-  books = SEED_BOOKS.map((book) => ({ ...book }));
+  books = cloneBooks(initialBooks);
+  genres = initialGenres.map((genre) => ({ ...genre }));
+  authors = initialAuthors.map((author) => ({ ...author }));
+  featuredIds = [...initialFeaturedIds];
   cart = [];
   orders = [];
-  featuredIsbns = [...DEFAULT_FEATURED];
-  emailLog = [];
-  orderCounter = 1;
-  emailCounter = 1;
+  lastOrderId = null;
 }
 
-export function isInStock(book: Book): boolean {
-  return book.hawthorneQty + book.cedarQty > 0;
+resetStore();
+
+export function combinedInStock(book: Book): boolean {
+  return book.quantityHawthorne + book.quantityCedar > 0;
 }
 
-export function listBooks(filters?: { genre?: string; author?: string }): Book[] {
-  let result = [...books];
-  if (filters?.genre) {
-    result = result.filter(
-      (book) => book.genre.toLowerCase() === filters.genre!.toLowerCase(),
-    );
+export function listBooks(): Book[] {
+  return books.map((book) => ({ ...book }));
+}
+
+export function getBook(id: string): Book | undefined {
+  const book = books.find((item) => item.id === id);
+  return book ? { ...book } : undefined;
+}
+
+export function listGenres(): Genre[] {
+  return genres.map((genre) => ({ ...genre }));
+}
+
+export function getGenreBySlug(slug: string): Genre | undefined {
+  const genre = genres.find((item) => item.slug === slug);
+  return genre ? { ...genre } : undefined;
+}
+
+export function listAuthors(): Author[] {
+  return authors.map((author) => ({ ...author }));
+}
+
+export function getAuthorBySlug(slug: string): Author | undefined {
+  const author = authors.find((item) => item.slug === slug);
+  return author ? { ...author } : undefined;
+}
+
+export function getAuthorName(authorId: string): string {
+  return authors.find((author) => author.id === authorId)?.name ?? "Unknown author";
+}
+
+export function getGenreName(genreId: string): string {
+  return genres.find((genre) => genre.id === genreId)?.name ?? "Unknown genre";
+}
+
+export function getBooksByGenreSlug(slug: string): Book[] {
+  const genre = getGenreBySlug(slug);
+  if (!genre) {
+    return [];
   }
-  if (filters?.author) {
-    result = result.filter(
-      (book) => book.author.toLowerCase() === filters.author!.toLowerCase(),
-    );
+  return books
+    .filter((book) => book.genreId === genre.id)
+    .map((book) => ({ ...book }));
+}
+
+export function getBooksByAuthorSlug(slug: string): Book[] {
+  const author = getAuthorBySlug(slug);
+  if (!author) {
+    return [];
   }
-  return result;
+  return books
+    .filter((book) => book.authorId === author.id)
+    .map((book) => ({ ...book }));
 }
 
 export function searchBooks(query: string): Book[] {
-  const normalized = query.trim().toLowerCase();
-  if (!normalized) {
+  const trimmed = query.trim();
+  if (!trimmed) {
     return [];
   }
-  return books.filter(
-    (book) =>
-      book.title.toLowerCase().includes(normalized) ||
-      book.isbn.includes(normalized),
-  );
-}
-
-export function getBook(isbn: string): Book | undefined {
-  return books.find((book) => book.isbn === isbn);
-}
-
-export function getFeaturedIsbns(): string[] {
-  return [...featuredIsbns];
+  const lower = trimmed.toLowerCase();
+  return books
+    .filter(
+      (book) =>
+        book.title.toLowerCase().includes(lower) || book.isbn === trimmed,
+    )
+    .map((book) => ({ ...book }));
 }
 
 export function getFeaturedBooks(): Book[] {
-  return featuredIsbns
-    .map((isbn) => getBook(isbn))
-    .filter((book): book is Book => book !== undefined);
+  return featuredIds
+    .map((id) => books.find((book) => book.id === id))
+    .filter((book): book is Book => Boolean(book))
+    .map((book) => ({ ...book }));
 }
 
-export function setFeaturedIsbns(isbns: string[]): string[] {
-  featuredIsbns = [...isbns];
-  return getFeaturedIsbns();
+export function listFeaturedIds(): string[] {
+  return [...featuredIds];
 }
 
-export function getCart(): CartItem[] {
-  return cart.map((item) => ({ ...item }));
-}
-
-export function addToCart(isbn: string, quantity = 1): CartItem[] {
-  const book = getBook(isbn);
-  if (!book) {
-    throw new Error("Book not found");
+export function addFeaturedBook(bookId: string): void {
+  if (!books.some((book) => book.id === bookId) || featuredIds.includes(bookId)) {
+    return;
   }
-  const existing = cart.find((item) => item.isbn === isbn);
+  featuredIds.push(bookId);
+}
+
+export function removeFeaturedBook(bookId: string): void {
+  featuredIds = featuredIds.filter((id) => id !== bookId);
+}
+
+export function reorderFeaturedBook(bookId: string, direction: "up" | "down"): void {
+  const index = featuredIds.indexOf(bookId);
+  if (index === -1) {
+    return;
+  }
+  const targetIndex = direction === "up" ? index - 1 : index + 1;
+  if (targetIndex < 0 || targetIndex >= featuredIds.length) {
+    return;
+  }
+  const next = [...featuredIds];
+  [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+  featuredIds = next;
+}
+
+export function getCart(): CartLine[] {
+  return cart.map((line) => ({ ...line }));
+}
+
+export function addToCart(bookId: string, quantity = 1): void {
+  const book = books.find((item) => item.id === bookId);
+  if (!book) {
+    return;
+  }
+  const existing = cart.find((line) => line.bookId === bookId);
   if (existing) {
     existing.quantity += quantity;
-  } else {
-    cart.push({ isbn, quantity });
+    return;
   }
-  return getCart();
+  cart.push({ bookId, quantity });
 }
 
-export function updateCartItem(isbn: string, quantity: number): CartItem[] {
-  const item = cart.find((entry) => entry.isbn === isbn);
-  if (!item) {
-    throw new Error("Cart item not found");
-  }
+export function updateCartQuantity(bookId: string, quantity: number): void {
   if (quantity <= 0) {
-    return removeFromCart(isbn);
+    removeFromCart(bookId);
+    return;
   }
-  item.quantity = quantity;
-  return getCart();
+  const line = cart.find((item) => item.bookId === bookId);
+  if (line) {
+    line.quantity = quantity;
+  }
 }
 
-export function removeFromCart(isbn: string): CartItem[] {
-  cart = cart.filter((item) => item.isbn !== isbn);
-  return getCart();
+export function removeFromCart(bookId: string): void {
+  cart = cart.filter((line) => line.bookId !== bookId);
 }
 
 export function clearCart(): void {
   cart = [];
 }
 
-export function isEgyptShipping(country: string): boolean {
-  const normalized = country.trim().toLowerCase();
-  return normalized === "egypt" || normalized === "eg";
+export function getCartLineCount(): number {
+  return cart.reduce((total, line) => total + line.quantity, 0);
 }
 
-export type CheckoutInput = {
-  address: DeliveryAddress;
-};
-
-export type CheckoutResult = {
-  order: Order;
-  email: EmailPayload;
-};
-
-export function checkout(input: CheckoutInput): CheckoutResult {
-  const { address } = input;
-  if (!address.fullName?.trim()) {
-    throw new Error("Full name is required");
-  }
-  if (!address.email?.trim()) {
-    throw new Error("Email is required");
-  }
-  if (!address.street?.trim()) {
-    throw new Error("Street address is required");
-  }
-  if (!address.city?.trim()) {
-    throw new Error("City is required");
-  }
-  if (!address.governorate?.trim()) {
-    throw new Error("Governorate is required");
-  }
-  if (!address.country?.trim()) {
-    throw new Error("Country is required");
-  }
-  if (!isEgyptShipping(address.country)) {
-    throw new Error("Shipping is available to Egypt only");
-  }
-  if (cart.length === 0) {
-    throw new Error("Cart is empty");
+export function createOrder(
+  email: string,
+  deliveryAddress: DeliveryAddress,
+  _payment: PaymentDetails,
+): Order | null {
+  if (!email.trim() || cart.length === 0) {
+    return null;
   }
 
-  const items: OrderLineItem[] = cart.map((item) => {
-    const book = getBook(item.isbn);
-    if (!book) {
-      throw new Error(`Book not found: ${item.isbn}`);
-    }
-    return {
-      isbn: book.isbn,
-      title: book.title,
-      quantity: item.quantity,
-      price: book.price,
-    };
-  });
+  const lines = cart
+    .map((line) => {
+      const book = books.find((item) => item.id === line.bookId);
+      if (!book) {
+        return null;
+      }
+      return {
+        bookId: book.id,
+        title: book.title,
+        quantity: line.quantity,
+        price: book.price,
+      };
+    })
+    .filter((line): line is Order["lines"][number] => Boolean(line));
 
-  const total = items.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0,
-  );
+  if (lines.length === 0) {
+    return null;
+  }
 
   const order: Order = {
-    id: `ORD-${String(orderCounter++).padStart(4, "0")}`,
+    id: `ORD-${String(orders.length + 1).padStart(4, "0")}`,
+    email: email.trim(),
+    lines,
+    deliveryAddress: { ...deliveryAddress },
     createdAt: new Date().toISOString(),
-    items,
-    address: { ...address },
-    total,
   };
 
   orders.push(order);
-
-  const email: EmailPayload = {
-    id: `EMAIL-${String(emailCounter++).padStart(4, "0")}`,
-    orderId: order.id,
-    to: address.email,
-    subject: `Order confirmation ${order.id} — Willow & Page Booksellers`,
-    body: [
-      `Dear ${address.fullName},`,
-      "",
-      `Thank you for your order ${order.id}.`,
-      "",
-      "Items:",
-      ...order.items.map(
-        (item) =>
-          `- ${item.title} (ISBN ${item.isbn}) x${item.quantity} — EGP ${(item.price * item.quantity).toFixed(2)}`,
-      ),
-      "",
-      `Total: EGP ${order.total.toFixed(2)}`,
-      "",
-      "Delivery address:",
-      `${address.street}`,
-      `${address.city}, ${address.governorate} ${address.postalCode}`,
-      `${address.country}`,
-      "",
-      "Willow & Page Booksellers",
-    ].join("\n"),
-    createdAt: order.createdAt,
-  };
-
-  emailLog.push(email);
+  lastOrderId = order.id;
   clearCart();
-
-  return { order, email };
+  return { ...order, lines: order.lines.map((line) => ({ ...line })) };
 }
 
 export function getOrder(id: string): Order | undefined {
-  return orders.find((order) => order.id === id);
-}
-
-export function listOrders(): Order[] {
-  return orders.map((order) => ({ ...order, items: [...order.items] }));
-}
-
-export function getEmailLog(): EmailPayload[] {
-  return emailLog.map((entry) => ({ ...entry }));
-}
-
-export function getEmailForOrder(orderId: string): EmailPayload | undefined {
-  return emailLog.find((entry) => entry.orderId === orderId);
-}
-
-export type InventoryUpdate = {
-  isbn: string;
-  price?: number;
-  hawthorneQty?: number;
-  cedarQty?: number;
-};
-
-export function updateInventory(update: InventoryUpdate): Book {
-  const book = getBook(update.isbn);
-  if (!book) {
-    throw new Error("Book not found");
+  const order = orders.find((item) => item.id === id);
+  if (!order) {
+    return undefined;
   }
-  if (update.price !== undefined) {
-    book.price = update.price;
-  }
-  if (update.hawthorneQty !== undefined) {
-    book.hawthorneQty = update.hawthorneQty;
-  }
-  if (update.cedarQty !== undefined) {
-    book.cedarQty = update.cedarQty;
-  }
-  return { ...book };
+  return {
+    ...order,
+    lines: order.lines.map((line) => ({ ...line })),
+    deliveryAddress: { ...order.deliveryAddress },
+  };
 }
 
-export function getGenres(): string[] {
-  return [...new Set(books.map((book) => book.genre))].sort();
+export function getLastOrderId(): string | null {
+  return lastOrderId;
 }
 
-export function getAuthors(): string[] {
-  return [...new Set(books.map((book) => book.author))].sort();
+export function buildConfirmationEmail(order: Order): string {
+  const lines = order.lines
+    .map(
+      (line) =>
+        `- ${line.title} x${line.quantity} — $${(line.price * line.quantity).toFixed(2)}`,
+    )
+    .join("\n");
+  const total = order.lines.reduce(
+    (sum, line) => sum + line.price * line.quantity,
+    0,
+  );
+
+  return [
+    `To: ${order.email}`,
+    `Subject: Your Willow & Page order ${order.id}`,
+    "",
+    "Thank you for your order from Willow & Page Booksellers.",
+    "",
+    `Order ${order.id}`,
+    lines,
+    "",
+    `Total: $${total.toFixed(2)}`,
+    "",
+    "Delivery address:",
+    order.deliveryAddress.name,
+    order.deliveryAddress.line1,
+    order.deliveryAddress.line2 ?? "",
+    `${order.deliveryAddress.city}, ${order.deliveryAddress.state ?? ""} ${order.deliveryAddress.postalCode}`,
+    order.deliveryAddress.country,
+    "",
+    "Mail orders are packed from our Hawthorne basement three days per week.",
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
-export function getBookQuantities(): Map<string, { hawthorneQty: number; cedarQty: number }> {
-  const map = new Map<string, { hawthorneQty: number; cedarQty: number }>();
-  for (const book of books) {
-    map.set(book.isbn, {
-      hawthorneQty: book.hawthorneQty,
-      cedarQty: book.cedarQty,
-    });
+export function updateBookPrice(bookId: string, price: number): void {
+  const book = books.find((item) => item.id === bookId);
+  if (book && price >= 0) {
+    book.price = price;
   }
-  return map;
+}
+
+export function updateBookQuantity(
+  bookId: string,
+  location: "hawthorne" | "cedar",
+  quantity: number,
+): void {
+  const book = books.find((item) => item.id === bookId);
+  if (!book || quantity < 0) {
+    return;
+  }
+  if (location === "hawthorne") {
+    book.quantityHawthorne = quantity;
+  } else {
+    book.quantityCedar = quantity;
+  }
 }

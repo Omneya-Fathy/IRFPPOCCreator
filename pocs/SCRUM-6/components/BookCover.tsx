@@ -1,19 +1,24 @@
+import type { Book } from "../lib/types";
+
 type BookCoverProps = {
-  title: string;
-  isbn: string;
+  book: Book;
+  size?: "sm" | "md" | "lg";
 };
 
-export function BookCover({ title, isbn }: BookCoverProps) {
-  const initials = title
-    .split(" ")
-    .slice(0, 2)
-    .map((word) => word[0]?.toUpperCase() ?? "")
-    .join("");
+const sizeClasses = {
+  sm: "h-32 w-24",
+  md: "h-44 w-32",
+  lg: "h-64 w-44",
+};
 
+export function BookCover({ book, size = "md" }: BookCoverProps) {
   return (
-    <div className="book-cover" aria-label={`Cover placeholder for ${title}`}>
-      <span className="book-cover-initials">{initials}</span>
-      <span className="book-cover-isbn">{isbn}</span>
+    <div
+      className={`flex shrink-0 items-end rounded-md border border-border p-3 text-xs font-medium text-primary-foreground shadow-sm ${sizeClasses[size]}`}
+      style={{ backgroundColor: book.coverColor }}
+      aria-hidden="true"
+    >
+      <span className="line-clamp-3">{book.title}</span>
     </div>
   );
 }

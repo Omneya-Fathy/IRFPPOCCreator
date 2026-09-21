@@ -4,44 +4,36 @@
 
 ## Open questions
 
-(none — all blocking questions answered)
+(none)
 
 ## Answered
 
 ### Q1 — Shipping destinations
 
-- Asked: Which delivery areas should checkout accept?
-- Answer (PR author): Egypt only
+- Asked: Where may mail orders be shipped? (e.g., Portland metro only, Oregon only, contiguous US, or broader/international)
+- Answer (PR author): International — mail orders may ship internationally.
+- Answered at: 2026-09-21
 - Status: answered
 
-### Q2 — In-stock display
+### Q2 — Staff access for staff tools
 
-- Asked: Per-location quantities, single in-stock flag, or both?
-- Answer (PR author): Single in-stock display
+- Asked: Who may use staff tools (price/inventory editing, featured-list curation, paid-order lookup), and how should they authenticate in the POC? (e.g., single shared demo login, named staff accounts, or no real auth with a staff-only route)
+- Answer (PR author): No auth — this is a POC UI only; staff tools are reachable without real authentication (staff-only routes/UI demo, no login).
+- Answered at: 2026-09-21
 - Status: answered
 
-### Q3 — Staff tools (POC)
+### Q3 — Paid-order lookup criteria
 
-- Asked: Shared staff login or open without auth for demo?
-- Answer (PR author): Open without auth for the demo
+- Asked: What fields should staff use to search and locate a paid order? (e.g., order number, buyer email, buyer name, order date, or a combination)
+- Answer (PR author): Skip — exclude paid-order lookup from the POC scope (do not implement staff order search; note as out of scope per operator).
+- Answered at: 2026-09-21
 - Status: answered
 
-### Q4 — Card payments (POC)
+### Q4 — In-stock presentation across Hawthorne and Cedar
 
-- Asked: Fake/local payment flow OK?
-- Answer (PR author): No payment for now
-- Status: answered
-
-### Q5 — Order email (POC)
-
-- Asked: Log/show confirmation email payload instead of sending?
-- Answer (PR author): Yes
-- Status: answered
-
-### Q6 — UI layout
-
-- Asked: Minimal functional layout OK?
-- Answer (PR author): Minimal functional layout
+- Asked: How should shoppers see availability across the two locations? (e.g., one combined in-stock/out-of-stock state, per-location in-stock flags only, or per-location quantities)
+- Answer (PR author): Combined — shoppers see one combined in-stock/out-of-stock state across Hawthorne and Cedar (not per-location detail).
+- Answered at: 2026-09-21
 - Status: answered
 
 ## Ignored comments
