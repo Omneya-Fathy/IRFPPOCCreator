@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #faf7f2;
+  --foreground: #2c2419;
+  --muted: #6b5d4f;
+  --border: #e8dfd4;
+  --primary: #5c3d2e;
+  --primary-foreground: #faf7f2;
+  --card: #ffffff;
+  --card-foreground: #2c2419;
+  --radius: 0.625rem;
+  --shadow-sm: 0 1px 3px rgb(44 36 25 / 0.08);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, sans-serif;
+}
+
+a[href^="http://"],
+a[href^="https://"] {
+  pointer-events: none;
+}
