@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f7f2ea;
+  --foreground: #2c2418;
+  --muted: #ebe3d6;
+  --muted-foreground: #6b5d4d;
+  --border: #d9cdb9;
+  --primary: #6b4c35;
+  --primary-foreground: #fdfaf5;
+  --card: #fffaf3;
+  --card-foreground: #2c2418;
+  --accent: #8b6f47;
+  --accent-foreground: #fffaf3;
+  --success: #3d6b4f;
+  --danger: #9b3d3d;
+  --radius: 0.625rem;
+  --shadow-sm: 0 1px 2px rgba(44, 36, 24, 0.08);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    margin: 0;
+    min-height: 100vh;
+  }
+
+  a[href^="http://"],
+  a[href^="https://"] {
+    pointer-events: none;
+  }
+}
+
+@layer utilities {
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+}
