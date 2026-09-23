@@ -12,5 +12,5 @@ Follow `Readme.md` and `AGENTS.md`. Entry skill: `irfp-orchestrator`.
 - Do not push if Vitest failed. Do not force-push.
 - No secrets, no real customer data, no clickable `http(s)` links in POC UI or markdown.
 - Framework: RFP wins; else Next.js App Router + TypeScript.
-- Code only after the PR author comments `/approve`. `/revise` means update plan docs and wait.
+- Code only after `/approve` (PR author comment) or `/irfp-approve` (Cursor command). `/revise` and `/irfp-feedback` update plan docs and wait.
 - Docs source of truth: `pocs/<JIRA-KEY>/docs/`.

@@ -7,7 +7,9 @@
 
 | Rule | Pass? | Notes |
 | --- | --- | --- |
-| UI specs | | |
+| UI specs (explicit) | | |
+| UI direction applied (no extra screens) | | Record retokenize evidence (`:root` vs scaffold). |
+| Demo appeal | | First viewport: product obvious, focal point, domain fit (not generic dashboard). |
 | No secrets | | |
 | No invented rules | | |
 | No sensitive data | | |
@@ -20,6 +22,10 @@
 | License-safe deps | | |
 
 ## Diff vs task plan
+
+## Advisory
+
+Residual taste notes after tokens and signature pattern are applied (optional):
 
 ## Outcome
 

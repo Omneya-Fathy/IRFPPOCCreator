@@ -21,11 +21,12 @@ Each run produces one demo-quality POC from one RFP. It is not a production syst
 | --- | --- |
 | Operating rules | `AGENTS.md`, `.cursor/rules/irfp.mdc` |
 | Orchestrator + skills | `.cursor/skills/` |
+| Slash commands | `.cursor/commands/` — catalog `docs/commands.md` |
 | Subagents | `.cursor/agents/` (`rfp-analyst`, `requirements-planner`, `developer`, `reviewer`, `tester`) |
 | Fail-closed hooks | `.cursor/hooks.json`, `.cursor/hooks/` |
 | Run CLI | `node scripts/irfp.mjs` (`help`, `scaffold-poc`, `verify-structure`, …) |
 | Doc templates | `templates/poc-docs/` |
-| Next.js + Vitest scaffold | `templates/poc-next/` (copied by `scaffold-poc`) |
+| Next.js + Vitest + Tailwind scaffold | `templates/poc-next/` (copied by `scaffold-poc`; includes `components/ui`) |
 | Cloud Agent prompts | `automations/start.md`, `automations/continue.md` |
 | Operator setup | `docs/setup.md` |
 | POC drop zone | `pocs/<JIRA-KEY>/` |
@@ -49,7 +50,7 @@ Connect Jira MCP, then create the two Cloud Agent automations (`docs/setup.md` a
 | POC depth | Demo-quality UI with minimal fake data; server code only when the approved plan requires it (unless the RFP named another framework) |
 | Unit tests | **Vitest.** Must pass before push |
 | External links | No clickable `http(s)` links in the UI or markdown. Local assets and npm packages are allowed |
-| Approval commands | PR author uses `/approve` or `/revise` in PR comments |
+| Approval commands | PR author uses `/approve` or `/revise` in PR comments, or `/irfp-approve` / `/irfp-feedback` in Cursor |
 | Planning artifacts | **Canonical copies live in `pocs/<JIRA-KEY>/docs/`** (not PR-only). PR comments are for Q&A and gates. |
 
 ## Trigger contract
@@ -127,15 +128,15 @@ sequenceDiagram
 | --- | --- |
 | PR author | Opens the ready PR. Answers questions. Approves the task list. Only this person can approve. |
 | Cloud Agent (orchestrator) | Routes steps, enforces gates, comments on the PR, pushes only after Vitest passes. |
-| RFP Analyst | Reads the RFP attachment. Extracts capabilities, UI specs, and gaps. |
+| RFP Analyst | Reads the RFP attachment. Extracts capabilities, UI requirements (explicit vs derived), UI direction, and gaps. |
 | Requirements Planner | Turns the brief into questions, a technical plan, and a task list. Owns the approval gate. |
 | Developer | Implements only the approved tasks under `pocs/<JIRA-KEY>/`. |
-| Reviewer | Checks the generated code against the RFP, UI specs, and hard rules. Independent of the Developer. |
+| Reviewer | Checks the generated code against the RFP, brief UI requirements/direction, approved tasks, and hard rules. Independent of the Developer. |
 | Tester | Writes and runs Vitest. Blocks push on failure. |
 
 ## Hard rules (stop conditions)
 
-1. **UI specs win.** If the RFP includes layout, components, copy, or interaction notes, generated UI must match them. Do not “improve” or swap in a design system the RFP did not specify.
+1. **UI specs win.** If the RFP includes layout, components, copy, or interaction notes, generated UI must match them. Do not “improve” or swap in a design system the RFP did not specify. If the RFP is silent on visuals, apply the **UI direction** in `docs/rfp-brief.md` as theme only — do not invent extra screens or business rules.
 2. **No secrets in code.** No API keys, tokens, passwords, or connection strings in source, comments, logs, or PR text. Env placeholders only. Never commit a `.env` file that contains values.
 3. **No invented business rules.** If a rule is missing, conflicting, or vague, comment on the PR and wait. Do not guess and proceed.
 4. **No sensitive data in the POC.** Do not copy real customer records, credentials, or confidential annexes into fixtures or sample payloads. Use clearly fake data.
@@ -144,7 +145,7 @@ sequenceDiagram
 7. **No clickable external links.** The POC UI and markdown must not contain `http://` or `https://` hrefs (or equivalent clickable URLs). Local assets, in-app routes, and npm packages are allowed. Do not load fonts, images, or scripts from a CDN URL in the generated UI. `next/font/google` and remote `<img src="https://…">` are forbidden; use local files.
 8. **Write path only.** All generated code, tests, and POC docs live under `pocs/<JIRA-KEY>/`. Do not modify orchestrator files at the repo root (`.cursor/`, `Readme.md`, hooks, automations). If a change is needed outside that folder, comment on the PR and stop.
 9. **One POC per Jira key.** Use the resolved issue key as the folder name (`pocs/PROJ-123/`). Do not reuse, rename, or split across sibling folders in the same PR run.
-10. **Approved tasks only.** Implement exactly what the PR author approved in the task list—no extra screens, APIs, libraries, or polish. If new work is needed, post a revised `TASK PLAN` and wait; do not ship scope creep.
+10. **Approved tasks only.** Implement exactly what the PR author approved in the task list—no extra screens, APIs, or libraries. Visual quality of those screens (theme from UI direction, responsive layout, loading/empty/error states) is required, not optional polish. **POC visual standard:** approved screens must look **modern** and **demo-impressive within restraint** (domain-specific tokens, first-viewport focal point, obvious primary CTA). No extra features. Typographic covers unless the RFP supplies real image files. If new **functional** work is needed, post a revised `TASK PLAN` and wait; do not ship scope creep.
 11. **No force-push.** Push commits onto the existing PR branch only. Never force-push, never open a second PR, never rewrite unrelated PR title/body/commits.
 12. **Minimal dependencies.** Add npm packages only when required by an approved task or a named RFP constraint. Do not pull in UI kits, ORMs, or SDKs the RFP did not ask for.
 13. **No dangerous patterns.** No `eval`, `new Function`, or unsanitized `dangerouslySetInnerHTML` with user- or RFP-sourced strings. Treat fixture and form input as untrusted at API boundaries.
@@ -159,11 +160,11 @@ Each step has a required input, an owner, an output, and a gate. A failed gate s
 | --- | --- | --- | --- | --- | --- |
 | 0 | Pre-check | Hook + Start agent | GitHub PR | First Jira key from title then body; issue reachable | Draft PR → do not start. Missing key → stop and comment. |
 | 1 | Fetch RFP | Orchestrator + Jira MCP | Jira issue | RFP attachment bytes + story fields | **Hook: RFP attachment exists before analyst.** Zero attachments → stop. Multiple attachments → ask the PR author which file(s) to use. |
-| 2 | Analyze RFP | RFP Analyst | RFP file(s) | `docs/rfp-brief.md` + PR summary comment | Brief covers description + capabilities + UI specs, or lists exactly what is missing. File committed under `pocs/<JIRA-KEY>/docs/`. |
+| 2 | Analyze RFP | RFP Analyst | RFP file(s) | `docs/rfp-brief.md` + PR summary comment | Brief covers description, capabilities, UI requirements (explicit vs derived), and UI direction. Blocking gaps are business rules/conflicts only — missing branding is filled as inferred direction. File committed under `pocs/<JIRA-KEY>/docs/`. |
 | 3 | Resolve ambiguities | Requirements Planner | Brief | Numbered questions on the PR + `docs/ambiguity-log.md` | Every blocking gap has a reply from the **PR author**. Log updated after each author reply. No silent defaults for business rules. |
 | 4 | Plan technical requirements | Requirements Planner | Brief + answers | `docs/technical-plan.md` + PR summary comment | Stack (RFP or Next.js), screens, routes, local data, Vitest checks. Still no app code. |
 | 5 | Generate tasks | Requirements Planner | Technical plan | `docs/task-plan.md` + PR `TASK PLAN` comment | **PR author must comment `/approve`.** No generation until then. On `/revise`, update the files and wait again. |
-| 6 | Generate code | Developer | Approved tasks + UI specs | App under `pocs/<JIRA-KEY>/` | Tasks map 1:1 to changes. No extra features. Persistence is local/fake unless the RFP named a real backend **and** it can run without secrets in git. Do not edit orchestrator files outside `pocs/<JIRA-KEY>/`. |
+| 6 | Generate code | Developer | Approved tasks + brief UI requirements/direction | App under `pocs/<JIRA-KEY>/` | Tasks map 1:1 to changes. No extra features. Theme follows UI direction when explicit design is absent. Persistence is local/fake unless the RFP named a real backend **and** it can run without secrets in git. Do not edit orchestrator files outside `pocs/<JIRA-KEY>/`. |
 | 7 | Code review | Reviewer | Diff + RFP + rules | `docs/review-report.md` + PR summary comment | Fail the run on any hard-rule violation (UI drift, secrets, clickable external URLs, scope creep, dangerous patterns, bad deps/licenses, large binaries, writes outside `pocs/<JIRA-KEY>/`, and so on). Return to Developer or Planner. |
 | 8 | Generate unit tests | Tester | Code + task checks | Vitest files in the POC | Tests cover the approved checks, not a generic template. |
 | 9 | Execute unit tests | Tester + Hook | `vitest` in the POC directory | `docs/test-report.md` + PR summary comment | **Hook: tests must pass before submit.** Fail → no push; comment the output. |
@@ -185,9 +186,9 @@ Skills are capabilities. Subagents own a stage. One subagent must not skip anoth
 
 | Skill | Used by | Does | Does not |
 | --- | --- | --- | --- |
-| Analyze RFP | RFP Analyst | Extract capabilities, UI specs, framework name, constraints, gaps; write `docs/rfp-brief.md` | Invent missing rules |
-| Generate tasks | Requirements Planner | Produce ordered, checkable tasks; write `docs/technical-plan.md` and `docs/task-plan.md`; post `TASK PLAN` on the PR | Start coding |
-| Frontend development | Developer | UI per RFP UI specs in the chosen framework | Restyle away from the spec |
+| Analyze RFP | RFP Analyst | Extract capabilities, UI requirements, UI direction, framework, constraints, blocking gaps; write `docs/rfp-brief.md` | Invent missing business rules; skip UI direction |
+| Generate tasks | Requirements Planner | Produce ordered, checkable tasks; copy UI direction into `docs/technical-plan.md`; write `docs/task-plan.md`; post `TASK PLAN` on the PR | Start coding; re-infer a different visual tone |
+| Frontend development | Developer | UI from approved tasks + brief UI requirements/direction | Restyle away from explicit specs; re-analyze the RFP; add screens for polish |
 | Backend development | Developer | Server/local persistence the approved plan named | Add APIs the RFP did not need; call real internet services; put secrets in git |
 | Code review | Reviewer | Diff vs RFP, rules, approved tasks, folder boundary | Approve the original task list |
 | Unit test | Tester | Generate and run Vitest for the checks | Push on red tests |
@@ -225,17 +226,28 @@ Automations:
 
 Do **not** attach a “code pushed to PR” trigger to the Start flow.
 
+### Cursor slash commands (local / chat)
+
+Same gates as Cloud Agent Continue. Type `/` in Cursor chat. Catalog: `docs/commands.md`.
+
+The human who runs the command is the operator. Docs under `pocs/<KEY>/docs/` stay canonical.
+
 ### Cursor project hooks
 
-| Hook intent | Suggested event | Behaviour |
+| Hook intent | Event | Behaviour |
 | --- | --- | --- |
-| RFP exists before analyst | `subagentStart` for RFP Analyst | Deny/stop if no attachment was fetched this run |
-| Unit tests pass before submit | `beforeShellExecution` on `git push` (and commit, if that is how Cloud Agent publishes) | Deny unless Vitest passed for `pocs/<JIRA-KEY>/` in this run |
-| Protect orchestrator files | `beforeReadFile` / `afterFileEdit` or review gate | Developer must not modify files outside `pocs/<JIRA-KEY>/` |
+| RFP exists before analyst | `subagentStart` | Deny if no `mark-rfp-fetched` stamp |
+| TASK PLAN approved before Developer | Skills + `mark-approved` | Required before generate. Hook script exists but is **unregistered** in `hooks.json` for now. |
+| Unit tests pass before submit | `beforeShellExecution` on `git commit` / `git push` | Deny unless Vitest passed; docs-only commits allowed |
+| Protect orchestrator files | `preToolUse` / `afterFileEdit` | Deny writes outside `pocs/<JIRA-KEY>/` after generate phase |
+| No external URLs in POC | `preToolUse` / `afterFileEdit` | Deny `http(s)` and `next/font/google` in POC UI/markdown |
+| No secrets in POC | `preToolUse` / `afterFileEdit` / `beforeShellExecution` | Deny secret patterns; do not echo matches |
 
-The two named gates fail **closed** (missing proof = block).
+Named gates fail **closed** (missing proof = block). One-page notes: `docs/hooks/`. Branch test: `node scripts/hooks-selftest.mjs`.
 
 ### Jira MCP
+
+Who, allowlist, errors, golden-path checklist: `docs/mcp.md`.
 
 Must be able to:
 
@@ -243,7 +255,7 @@ Must be able to:
 - List attachments
 - Download the chosen RFP file
 
-If the attachment is not plain text (PDF, DOCX, and so on), the analyst still extracts description, capabilities, and UI specs. If it cannot read the file, it comments and stops.
+If the attachment is not plain text (PDF, DOCX, and so on), the analyst still extracts description, capabilities, UI requirements, and UI direction. If it cannot read the file, it comments and stops.
 
 ## POC technical defaults
 
@@ -256,7 +268,7 @@ Apply when the RFP is silent. If the RFP names a different framework or UI kit, 
 - No auth vendor unless the approved plan names one **and** it can run with fake/local users.
 - UI follows the RFP spec; no extra component library unless the RFP or the PR author names one.
 - Package installs via npm/pnpm are allowed. Runtime fetch of `https://` URLs in the UI is not.
-- Fonts and images: files in the POC folder only.
+- Fonts and images: files in the POC folder only. Product/cover photos: use typographic cover tiles (`TypographicCover`) unless the RFP supplies real image files — no decorative placeholder art (see `frontend-development` skill).
 - Secrets: `.env.example` with empty placeholders only. No real `.env` values.
 - Tests: Vitest, run from the POC directory before push.
 
@@ -264,9 +276,10 @@ Apply when the RFP is silent. If the RFP names a different framework or UI kit, 
 
 ```text
 /                                    orchestrator (Readme, agent config, hooks, automations)
-/.cursor/                            project hooks
+/.cursor/                            project hooks, skills, agents, slash commands
+/.cursor/commands/                   see `docs/commands.md`
 /pocs/PROJ-123/                      generated app for that Jira key
-/pocs/PROJ-123/docs/rfp-brief.md     extracted capabilities, UI specs, framework, non-goals
+/pocs/PROJ-123/docs/rfp-brief.md     extracted capabilities, UI requirements, UI direction, framework, non-goals
 /pocs/PROJ-123/docs/ambiguity-log.md questions + PR-author answers (updated as replies arrive)
 /pocs/PROJ-123/docs/technical-plan.md stack, screens, routes, local data, Vitest checks
 /pocs/PROJ-123/docs/task-plan.md     ordered task list (must match approved `/approve` comment)
@@ -283,7 +296,7 @@ The Developer writes only under `pocs/<JIRA-KEY>/`. Merging a PR may leave that 
 
 | File | Owner step | Contents |
 | --- | --- | --- |
-| `docs/rfp-brief.md` | Analyze RFP | Capabilities, UI specs, chosen framework, explicit non-goals |
+| `docs/rfp-brief.md` | Analyze RFP | Capabilities, UI requirements, UI direction, chosen framework, explicit non-goals |
 | `docs/ambiguity-log.md` | Resolve ambiguities | Questions, PR-author answers, timestamps |
 | `docs/technical-plan.md` | Plan technical requirements | Stack, screens, local data, APIs |
 | `docs/task-plan.md` | Generate tasks | Ordered task list + checks (must match the `/approve` comment) |
@@ -301,7 +314,7 @@ The Developer writes only under `pocs/<JIRA-KEY>/`. Merging a PR may leave that 
 - E2E tests, visual regression, or production CI beyond Vitest.
 - Rewriting the Jira story or the RFP.
 - Opening a second PR (push to the **created** PR only).
-- Pixel-perfect UI when the RFP has no UI spec — ask on the PR; do not invent a look.
+- Pixel-perfect recreation of an unspecified brand. Infer UI direction in the brief; implement it as a consistent demo theme, not a custom design-system product.
 - Calling real third-party APIs that need live secrets.
 - Clickable documentation or marketing URLs inside the POC.
 

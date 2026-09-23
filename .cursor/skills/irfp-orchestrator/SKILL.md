@@ -1,6 +1,6 @@
 ---
 name: irfp-orchestrator
-description: Routes IRFP POC Creator runs from a GitHub PR plus Jira RFP through analyze, PR-comment Q&A, /approve, generate, review, Vitest, and push. Use when a PR opens, a PR comment arrives, a Jira key is present, or the user says start/continue the RFP POC pipeline.
+description: Routes IRFP POC Creator runs from a GitHub PR plus Jira RFP through analyze, Q&A, /approve, generate, review, Vitest, and push. Use when a PR opens, a PR comment arrives, a Cursor slash command `/irfp-orchestrator` `/irfp-answer` `/irfp-feedback` `/irfp-approve` `/irfp-status` is used, a Jira key is present, or the user says start/continue the RFP POC pipeline.
 ---
 
 # IRFP orchestrator
@@ -21,8 +21,8 @@ Read `Readme.md` and `AGENTS.md` first. You are the only entry point. Do not ski
 8. Multiple attachments: comment the file list; ask the **PR author** which to use. Stop until Continue receives their choice, then `node scripts/irfp.mjs mark-selected-attachment --key <KEY> --files <name>`. Do not analyze until then.
 9. Download the chosen RFP into `pocs/<KEY>/.run/rfp/` (gitignored). Do not commit the binary.
 10. `node scripts/irfp.mjs mark-rfp-fetched --key <KEY> --files <names>`
-11. Launch the **rfp-analyst** subagent (`subagent_type: rfp-analyst`). Prompt must include `You are the RFP Analyst.` so the RFP hook matches. Do not write app code.
-12. Launch the **requirements-planner** subagent for questions + draft plan docs.
+11. Launch the **rfp-analyst** subagent (`subagent_type: rfp-analyst`). Prompt must include `You are the RFP Analyst.` so the RFP hook matches. Do not write app code. Analyst owns capabilities, UI requirements, and UI direction in `docs/rfp-brief.md`.
+12. Launch the **requirements-planner** subagent for questions + draft plan docs. Planner copies UI direction into `technical-plan.md`; it does not restyle. If UI direction is insufficient, Planner expands it in the brief before `TASK PLAN`. Analyst and Planner own the minimum UI direction fields (Tone, Density, Context, Notes ≥ two lines, Demo quality).
 13. Comment `Q1`… on the PR. Commit only `pocs/<KEY>/docs/` if you must persist files. Docs-only commits are allowed before Vitest. No app source.
 
 ### Continue (PR comment)
@@ -43,7 +43,7 @@ Then:
 
 ## Generate after `/approve`
 
-1. **developer** subagent — first `node scripts/irfp.mjs scaffold-poc --key <KEY>` (Next.js + Vitest template; skips existing docs). Then implement UI/server under `pocs/<KEY>/`.
+1. **developer** subagent — first `node scripts/irfp.mjs scaffold-poc --key <KEY>` (Next.js + Vitest + Tailwind + `components/ui`; skips existing docs). Retokenize scaffold primitives from brief UI direction; do not invent a greenfield design system. Then implement UI/server under `pocs/<KEY>/` from the approved plan plus brief UI requirements/direction. Analyst and Planner own **minimum UI direction** before this step. Developer must not re-analyze the RFP files.
 2. **reviewer** subagent — fail closed on any hard-rule miss. May commit `docs/review-report.md` only (docs-only commit allowed without Vitest).
 3. **tester** subagent — Vitest in the POC directory. Stamp `mark-vitest` **before** committing app files or pushing.
 4. `node scripts/irfp.mjs mark-vitest --key <KEY> --passed true` only after a green run.

@@ -11,7 +11,7 @@ When invoked:
 
 1. Read `pocs/<KEY>/docs/rfp-brief.md`. If missing, stop.
 2. Keep `docs/ambiguity-log.md` in sync with `Q1`/`A1` on the PR.
-3. When blocking questions are answered, write `docs/technical-plan.md` and `docs/task-plan.md` from the templates. The PR `TASK PLAN` comment must match `task-plan.md`.
+3. When blocking questions are answered, verify UI direction is sufficient (Tone, Density, Context, Notes ≥ two lines, Demo quality). Then write `docs/technical-plan.md` and `docs/task-plan.md` from the templates. First silent-stack task: map UI direction onto scaffold tokens — do not reinstall Tailwind. Include Vitest that tokens differ from scaffold defaults, a check that the primary route uses the Notes signature pattern, and Demo appeal / Hierarchy for review if not unit-testable. The PR `TASK PLAN` comment must match `task-plan.md`.
 4. `node scripts/irfp.mjs set-phase --key <KEY> --phase plan`
 5. Stop and wait. `/approve` is for the orchestrator, not you.
 
@@ -24,4 +24,5 @@ You do not:
 - Write application source
 - Treat your own “looks reasonable” as approval
 - Invent unanswered business rules
+- Ask for branding or a look when `rfp-brief.md` already has UI direction
 - Edit files outside `pocs/<KEY>/docs/`

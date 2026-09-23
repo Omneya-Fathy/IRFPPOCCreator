@@ -36,6 +36,7 @@ Commands:
   mark-vitest               Stamp Vitest result (--passed true|false)
   status                    Print run state
   verify-structure          Check orchestrator files exist
+  hooks-selftest            Run deny/allow checks for Q3 policy hooks
   help                      Show this text
 
 Options:
@@ -148,6 +149,15 @@ switch (cmd) {
     if (!result.ok) process.exit(1);
     break;
   }
+  case "hooks-selftest": {
+    const { spawnSync } = await import("node:child_process");
+    const result = spawnSync(process.execPath, [path.join(root, "scripts", "hooks-selftest.mjs")], {
+      cwd: root,
+      stdio: "inherit",
+    });
+    process.exit(result.status ?? 1);
+    break;
+  }
   case "set-phase": {
     const key = requireKey();
     if (!args.phase) fail("Pass --phase <name>.");
@@ -156,9 +166,13 @@ switch (cmd) {
   }
   case "mark-approved": {
     const key = requireKey();
-    console.log(
-      JSON.stringify(saveState(root, key, { phase: "generate", approved: true }), null, 2),
+    const state = saveState(root, key, { phase: "generate", approved: true });
+    fs.mkdirSync(runDir(root, key), { recursive: true });
+    fs.writeFileSync(
+      path.join(runDir(root, key), "approved.json"),
+      `${JSON.stringify({ ok: true, at: state.updatedAt }, null, 2)}\n`,
     );
+    console.log(JSON.stringify(state, null, 2));
     break;
   }
   case "mark-vitest": {
