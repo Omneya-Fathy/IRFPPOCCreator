@@ -1,6 +1,6 @@
 # Operator setup
 
-This repo is the orchestrator. A generated app appears only after `/approve` on a GitHub PR.
+This repo is the orchestrator. A generated app appears only after `/approve` on a GitHub PR or `/irfp-approve` in Cursor.
 
 ## 1. Push the orchestrator
 
@@ -8,11 +8,7 @@ Commit and push `main` to GitHub so Cloud Agents can check out skills, hooks, an
 
 ## 2. Connect Jira MCP in Cursor
 
-The Start agent must:
-
-- Resolve an issue from a key like `PROJ-123`
-- List attachments
-- Download the chosen RFP file
+Jira MCP policy (who, allowed tools, errors, golden-path checklist): `docs/mcp.md`.
 
 If Jira MCP is missing or unauthenticated, the agent comments on the PR and stops. Do not invent an RFP.
 
@@ -34,19 +30,27 @@ Tools: comment on PRs, Jira MCP, checkout of this repo’s PR branch.
 3. Start agent fetches the attachment, stamps `mark-rfp-fetched`, then launches `rfp-analyst`.
 4. If several attachments exist, it comments the list and waits. After the PR author names a file, Continue runs `mark-selected-attachment`.
 
-## 5. Local CLI
+## 5. Cursor slash commands
+
+Catalog: `docs/commands.md`. Type `/` in chat.
+
+## 6. Local CLI
 
 ```text
 node scripts/irfp.mjs help
+node scripts/irfp.mjs status --key PROJ-123
 node scripts/irfp.mjs verify-structure
+node scripts/irfp.mjs hooks-selftest
 ```
 
-## 6. Identity gate (Continue)
+## 7. Identity gate (Continue)
 
-Only the **PR author** may:
+Only the **PR author** (or the human who ran the Cursor command) may:
 
-- Answer `Q1` / `A1`
+- Answer `Q1` / `A1` (PR comment or `/irfp-answer`)
 - Choose an attachment
-- Comment `/approve` or `/revise`
+- Comment `/approve` / `/revise`, or run `/irfp-approve` / `/irfp-feedback`
 
 Ignore comments from anyone else and from the agent itself.
+
+Rules inventory: `docs/rules-audit.md`.
