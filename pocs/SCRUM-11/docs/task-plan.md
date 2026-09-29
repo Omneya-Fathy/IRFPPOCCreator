@@ -3,9 +3,9 @@
 Comment this same checklist on the PR as `TASK PLAN`. Wait for the PR author to comment `/approve` or run `/irfp-approve` **after Q1–Q3 are answered and logged**.
 
 - Jira key: SCRUM-11
-- Status: waiting-for-approve
+- Status: approved (2026-09-29)
 
-**Blocked on PR author:** A1 (shipping fee — Q1), A2 (returns scope — Q2), A3 (staff access — Q3). Revise tasks 13–14 and any returns task once answers land.
+**A1–A3 logged:** shipping fee placeholder ($0 + copy), returns static policy only, unauthenticated staff routes.
 
 ## TASK PLAN
 

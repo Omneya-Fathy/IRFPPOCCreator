@@ -3,13 +3,13 @@
 - Jira key: SCRUM-11
 - Stack (RFP named / Next.js default / PR-author override): RFP silent — **Next.js App Router + TypeScript**, demo UI, static fixtures + in-memory state (no real payment gateway or email provider).
 
-## Pending business rules (Q1–Q3)
+## Resolved business rules (Q1–A3)
 
-| ID | Topic | Status |
+| ID | Topic | Decision |
 | --- | --- | --- |
-| **A1** | Portland mail-order **shipping fee** presentation at checkout | Pending **Q1** |
-| **A2** | **Returns/refunds** scope in the POC | Pending **Q2** |
-| **A3** | **Staff route** access model | Pending **Q3** |
+| **A1** | Portland mail-order **shipping fee** at checkout | **$0** with placeholder copy (“calculated at fulfilment”); no tiered fee model in the POC. |
+| **A2** | **Returns/refunds** in the POC | **(a)** Static buyer-facing returns policy text only — no return-initiation UI. |
+| **A3** | **Staff route** access | **Unauthenticated** `/staff/*` for local demo; no login gate. |
 
 ## Resolved from RFP (no PR answer required)
 
