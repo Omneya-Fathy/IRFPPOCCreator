@@ -34,7 +34,7 @@ From `rfp-brief.md` or the copy in `technical-plan.md`, direction is **sufficien
 
 **If sufficient:** do **not** read all of `ui-direction.md` for inference. You **must** still read: **Tone → visual translation**, **First-glance appeal**, **Domain-relevant visual language**, and **Final visual QA** (full table). Retokenize `:root` from the Tone table + density.
 
-**If insufficient** (empty, placeholders, or missing any field): read `.cursor/skills/frontend-development/ui-direction.md` once, infer tone, comment on the PR that the brief was thin, then implement. Do not reopen the RFP.
+**If insufficient** (empty, placeholders, or missing any field): read `.cursor/skills/frontend-development/ui-direction.md` once, infer tone, comment on **Jira** that the brief was thin (prefix `**[IRFP POC Creator]**`, no `http(s)`), then implement. Do not reopen the RFP.
 
 ## Process
 
@@ -51,4 +51,4 @@ From `rfp-brief.md` or the copy in `technical-plan.md`, direction is **sufficien
 1. Explicit UI wins. Task plan is 1:1. No extra screens for polish. Unchanged scaffold tokens/layout fail when the plan requires theme mapping.
 2. No secrets, no clickable `http(s)` hrefs, no CDNs, no `next/font/google`, no faux product/cover image files (typographic or real supplied assets only — see step 5).
 3. Edit only `pocs/<KEY>/`. No deps beyond the scaffold Tailwind toolchain and what the RFP/plan requires.
-4. Comment on the PR and stop if a business rule is missing. Do not invent screens or rules.
+4. Comment on **Jira** and stop if a business rule is missing. Do not invent screens or rules.

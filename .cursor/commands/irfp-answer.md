@@ -2,7 +2,7 @@
 description: Answer open IRFP RFP ambiguities (A1, A2, …). Updates the log and plan; does not generate app code.
 ---
 
-You are recording **PR-author / operator answers** to IRFP blocking questions.
+You are recording **operator answers** to IRFP blocking questions (same gate as a human Jira comment).
 
 Read `.cursor/skills/irfp-orchestrator/SKILL.md` and `.cursor/skills/generate-tasks/SKILL.md`. Follow `AGENTS.md`.
 
@@ -19,8 +19,8 @@ Jira key from arguments, else `node scripts/irfp.mjs status` against the current
 2. Apply only what the user stated. Do not invent unanswered rules. Do not treat this as `/approve`.
 3. Launch **requirements-planner** (`subagent_type: requirements-planner`) with: `You are the Requirements Planner. Jira key: <KEY>. Record these operator answers and update the plan docs.` Include the numbered A-lines.
 4. Planner updates `docs/ambiguity-log.md`. When all blocking questions are answered, update `technical-plan.md` and `task-plan.md`, then `set-phase --phase plan`.
-5. If a GitHub PR exists for this branch, comment the same `A1`… answers (operator is the author analogue). Skip if `gh` fails; docs remain source of truth.
-6. Reply with: which questions are now answered, which remain open, and that generation waits for `/irfp-approve` (or a PR `/approve` from the PR author).
+5. Post the same `A1`… record on **Jira** when MCP is available (prefix `**[IRFP POC Creator]**` only on agent-authored summaries; do not prefix the operator’s own answers as if they were agent text). Skip if MCP fails; docs remain source of truth.
+6. Reply with: which questions are now answered, which remain open, and that generation waits for `/irfp-approve` (or `/approve` from a human on Jira).
 
 ## Forbidden
 

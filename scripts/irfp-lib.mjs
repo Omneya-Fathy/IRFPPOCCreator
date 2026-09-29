@@ -71,6 +71,9 @@ export function saveState(root, key, patch) {
     selectedAttachments: [],
     approved: false,
     vitestPassed: false,
+    branch: `poc/${key}`,
+    prNumber: null,
+    jiraCloudId: null,
     updatedAt: null,
   };
   const next = { ...prev, ...patch, key, updatedAt: new Date().toISOString() };

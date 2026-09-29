@@ -1,53 +1,73 @@
 ---
 name: irfp-orchestrator
-description: Routes IRFP POC Creator runs from a GitHub PR plus Jira RFP through analyze, Q&A, /approve, generate, review, Vitest, and push. Use when a PR opens, a PR comment arrives, a Cursor slash command `/irfp-orchestrator` `/irfp-answer` `/irfp-feedback` `/irfp-approve` `/irfp-status` is used, a Jira key is present, or the user says start/continue the RFP POC pipeline.
+description: Routes IRFP POC Creator runs from a Jira issue (RFP attachment + comments) through analyze, Q&A, /approve, generate, review, Vitest, and a GitHub PR for code. Use when a Jira webhook fires (Ready + RFP, or a comment), a Cursor slash command `/irfp-orchestrator` `/irfp-answer` `/irfp-feedback` `/irfp-approve` `/irfp-status` is used, a Jira key is present, or the user says start/continue the RFP POC pipeline.
 ---
 
 # IRFP orchestrator
 
 Read `Readme.md` and `AGENTS.md` first. You are the only entry point. Do not skip gates.
 
+Gates live on **Jira issue comments**. GitHub is for **code delivery** only (one PR per Jira key after green Vitest).
+
+## How to comment on Jira
+
+Use Atlassian MCP `addOrEditJiraIssueComment`:
+
+1. `getAccessibleAtlassianResources` once per session; cache **`cloudId`**. After `gh pr create`, run `node scripts/irfp.mjs mark-pr-linked --key <KEY> --number <N> [--branch poc/<KEY>] [--cloud-id <uuid>]`.
+2. Call `addOrEditJiraIssueComment` with `cloudId`, `issueIdOrKey` = `<KEY>`, markdown `commentBody`.
+3. Prefix every agent post with `**[IRFP POC Creator]**` so Continue can ignore it.
+4. Do **not** put `http://` or `https://` in comment bodies. For a GitHub PR, write plain text such as `GitHub PR #N on branch poc/KEY` (no clickable URL).
+5. Do not invent an RFP if MCP fails. If you cannot comment (MCP down), stop; do not paste a substitute RFP.
+
+`atlassianUserInfo` once per Continue run: ignore comments whose author `accountId` matches the connected user.
+
 ## Modes
 
-### Start (PR opened)
+### Start (Jira webhook — primary)
 
-1. `gh pr view --json title,body,author,isDraft,url,number`
-2. If `isDraft` is true, stop with no comment.
-3. `node scripts/irfp.mjs parse-key --title "<title>" --body "<body>"`
-4. If no key: comment that the key must appear in the title or body (`PROJ-123`). Stop.
-5. `node scripts/irfp.mjs init-run --key <KEY>`
-6. Load the Jira issue with the connected Jira MCP. List attachments.
-7. Zero attachments: comment and stop.
-8. Multiple attachments: comment the file list; ask the **PR author** which to use. Stop until Continue receives their choice, then `node scripts/irfp.mjs mark-selected-attachment --key <KEY> --files <name>`. Do not analyze until then.
-9. Download the chosen RFP into `pocs/<KEY>/.run/rfp/` (gitignored). Do not commit the binary.
-10. `node scripts/irfp.mjs mark-rfp-fetched --key <KEY> --files <names>`
-11. Launch the **rfp-analyst** subagent (`subagent_type: rfp-analyst`). Prompt must include `You are the RFP Analyst.` so the RFP hook matches. Do not write app code. Analyst owns capabilities, UI requirements, and UI direction in `docs/rfp-brief.md`.
-12. Launch the **requirements-planner** subagent for questions + draft plan docs. Planner copies UI direction into `technical-plan.md`; it does not restyle. If UI direction is insufficient, Planner expands it in the brief before `TASK PLAN`. Analyst and Planner own the minimum UI direction fields (Tone, Density, Context, Notes ≥ two lines, Demo quality).
-13. Comment `Q1`… on the PR. Commit only `pocs/<KEY>/docs/` if you must persist files. Docs-only commits are allowed before Vitest. No app source.
+Trigger: user story status **Ready** and an attachment whose name matches **RFP** (Cloud Agent filter). Do not wait for a GitHub PR.
 
-### Continue (PR comment)
+1. Resolve **`issueKey`** from the webhook payload (`issue.key` or equivalent). If only an issue id is present, load the issue with Jira MCP (`getJiraIssue`) and take the key. If the payload has neither, stop (cannot comment without a key).
+2. `node scripts/irfp.mjs init-run --key <KEY>` (creates `pocs/<KEY>/`, sets default branch `poc/<KEY>`).
+3. **Branch:** `git fetch` then checkout or create `poc/<KEY>`. All docs commits go on this branch. No PR is required yet.
+4. Jira MCP: cache `cloudId`; load the issue; list attachments.
+5. **RFP selection:** prefer attachments whose filename contains or equals `RFP` (case-insensitive). If the webhook already guarantees one matching file, auto-select it. If several match, comment the file list on Jira and **stop** until Continue + `mark-selected-attachment`. Zero attachments: comment and stop.
+6. Download the chosen RFP into `pocs/<KEY>/.run/rfp/` (gitignored). Do not commit the binary.
+7. `node scripts/irfp.mjs mark-rfp-fetched --key <KEY> --files <names>`
+8. Launch the **rfp-analyst** subagent (`subagent_type: rfp-analyst`). Prompt must include `You are the RFP Analyst.` so the RFP hook matches. Do not write app code. Analyst owns capabilities, UI requirements, and UI direction in `docs/rfp-brief.md`.
+9. Launch the **requirements-planner** subagent for questions + draft plan docs. Planner copies UI direction into `technical-plan.md`; it does not restyle. If UI direction is insufficient, Planner expands it in the brief before `TASK PLAN`. Analyst and Planner own the minimum UI direction fields (Tone, Density, Context, Notes ≥ two lines, Demo quality).
+10. Post `Q1`… and `TASK PLAN` on the **Jira issue** only (not a GitHub PR). Commit only `pocs/<KEY>/docs/` if you must persist files. Docs-only commits are allowed before Vitest. No app source.
+
+### Continue (Jira comment webhook)
 
 Identity gate (do this first, every time):
 
-1. `gh pr view --json author,comments` (or the comment payload from the automation).
-2. If the commenter login is **not** the PR author login: ignore (no files, no replies, no `/approve`).
-3. If the comment is from this agent: ignore.
+1. Read comment **author `accountId`** and **body** from the webhook payload. If `issue.key` or body is missing, comment on the issue that the payload is incomplete (if you have a key) and stop. Do not guess fields.
+2. Call **`atlassianUserInfo`**. If the commenter `accountId` equals the connected user → **ignore** (no files, no replies, no `/approve`).
+3. If the body starts with `**[IRFP POC Creator]**` → **ignore** (loop guard).
+4. Any other human commenter may answer, `/approve`, or `/revise`.
 
 Then:
 
-1. Attachment choice (filename the author named): `mark-selected-attachment`, download if needed, then `rfp-analyst` if analysis has not run.
-2. `A1` / threaded answers: launch **requirements-planner** to update `docs/ambiguity-log.md` and plan files; comment remaining gaps. Docs-only git commits are allowed.
-3. `/revise` from the PR author: launch **requirements-planner**; do not generate.
-4. `/approve` from the PR author only: `node scripts/irfp.mjs mark-approved --key <KEY>` then generate → review → Vitest → push.
-5. Any other text: if it answers a question, treat as an answer. Otherwise comment that you need `/approve` or `/revise`.
+1. Attachment choice (filename the human named): `mark-selected-attachment`, download if needed, then `rfp-analyst` if analysis has not run.
+2. `A1` / threaded answers: launch **requirements-planner** to update `docs/ambiguity-log.md` and plan files; comment remaining gaps on Jira. Docs-only git commits are allowed.
+3. `/revise` from a human: launch **requirements-planner**; do not generate.
+4. `/approve` from a human: `node scripts/irfp.mjs mark-approved --key <KEY>` then generate → review → Vitest → push / create PR.
+5. Any other text: if it answers a question, treat as an answer. Otherwise comment on Jira that you need `/approve` or `/revise`.
+
+### Legacy Start (PR opened)
+
+Optional for local/`gh`-driven runs. Extract the first Jira key from PR title then body. If `isDraft` is true, stop with no comment. Then follow **Start (Jira webhook)** from `init-run` onward. **Always comment on Jira** when `issueKey` is known — do not dual-post to the PR.
 
 ## Generate after `/approve`
 
 1. **developer** subagent — first `node scripts/irfp.mjs scaffold-poc --key <KEY>` (Next.js + Vitest + Tailwind + `components/ui`; skips existing docs). Retokenize scaffold primitives from brief UI direction; do not invent a greenfield design system. Then implement UI/server under `pocs/<KEY>/` from the approved plan plus brief UI requirements/direction. Analyst and Planner own **minimum UI direction** before this step. Developer must not re-analyze the RFP files.
-2. **reviewer** subagent — fail closed on any hard-rule miss. May commit `docs/review-report.md` only (docs-only commit allowed without Vitest).
+2. **reviewer** subagent — fail closed on any hard-rule miss. May commit `docs/review-report.md` only (docs-only commit allowed without Vitest). Comment a short pass/fail on **Jira**.
 3. **tester** subagent — Vitest in the POC directory. Stamp `mark-vitest` **before** committing app files or pushing.
 4. `node scripts/irfp.mjs mark-vitest --key <KEY> --passed true` only after a green run.
-5. Commit `pocs/<KEY>/` (app + docs). Push to the existing PR branch. Never `--force`. Never open a second PR.
+5. Commit `pocs/<KEY>/` (app + docs) on branch `poc/<KEY>` (or `state.branch`). Never `--force`.
+6. **PR create-once:** `gh pr list --search "<KEY>" --json number,headRefName` (and/or head `poc/<KEY>`). If **no open PR** for this key: `git push -u origin poc/<KEY>`, then **`gh pr create`** once (title/body include `<KEY>`). `node scripts/irfp.mjs mark-pr-linked --key <KEY> --number <N> --branch poc/<KEY>`. If a PR already exists: push to **that** branch only. Never open a **second** PR for the same Jira key.
+7. Post a short **Jira** summary (review/test/push outcome, `GitHub PR #N on branch poc/KEY`). No clickable `http(s)`.
 
 ## Subagents
 
@@ -73,5 +93,5 @@ One stage at a time. Do not start Developer until `/approve`. Do not start Teste
 
 ## Stop conditions
 
-- Missing key, missing RFP, unanswered Qs, no `/approve`, review fail, Vitest fail → comment and stop.
-- New business-rule gap during coding → comment; do not invent.
+- Missing key, missing RFP, unanswered Qs, no `/approve`, review fail, Vitest fail → comment on **Jira** and stop.
+- New business-rule gap during coding → comment on **Jira**; do not invent.

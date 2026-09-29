@@ -40,4 +40,4 @@ If `pocs/<KEY>/package.json` is missing, run `scaffold-poc` first. Then add **on
 
 ## If a gap appears
 
-Comment on the PR. Do not invent business rules or expand into a real backend.
+Comment on **Jira**. Do not invent business rules or expand into a real backend.

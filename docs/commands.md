@@ -1,10 +1,10 @@
 # Slash commands
 
-Type `/` in Cursor chat. Files: `.cursor/commands/`. The human who runs a command is the operator (same gate as PR author).
+Type `/` in Cursor chat. Files: `.cursor/commands/`. The human who runs a command is the operator (same gate as a human on the Jira issue).
 
 | Command | Arguments | Default | Does | Safety |
 | --- | --- | --- | --- | --- |
-| `/irfp-orchestrator` | Jira key, PR URL, or mode hint | Infer key from branch / PR / newest `pocs/` folder | Start or continue the pipeline | No app code until `/irfp-approve`. Do not skip gates. |
+| `/irfp-orchestrator` | Jira key, PR URL, or mode hint | Infer key from branch / newest `pocs/` folder | Start or continue the pipeline | No app code until `/irfp-approve`. Do not skip gates. |
 | `/irfp-answer` | `A1: …` text | Map unnumbered answers in order | Record answers; update plan docs | Do not invent unanswered rules. Not approval. |
 | `/irfp-feedback` | Revision notes | Require an existing brief/plan | Revise task/technical plan | Do not `mark-approved`. Do not generate. |
 | `/irfp-approve` | Optional Jira key | Infer key as orchestrator does | Stamp approval; generate → review → Vitest → push | Only the human who invoked it. Never force-push. No push if Vitest failed. |

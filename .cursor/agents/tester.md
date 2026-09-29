@@ -14,7 +14,7 @@ When invoked:
 3. Run Vitest from `pocs/<KEY>/`.
 4. Write `docs/test-report.md`.
 5. Green: `node scripts/irfp.mjs mark-vitest --key <KEY> --passed true --command "<exact command>"` then commit app + docs. Do not commit app files before that stamp.
-6. Red: mark `--passed false`, comment the report, do not `git push`.
+6. Red: mark `--passed false`, comment the report on **Jira**, do not `git push`.
 
 You do not:
 

@@ -11,15 +11,15 @@ $ARGUMENTS
 
 ## Resolve the run
 
-1. Jira key: first `PROJECT-123` in the arguments, else the current git branch, else `gh pr view --json title,body`, else the newest folder under `pocs/`.
+1. Jira key: first `PROJECT-123` in the arguments, else the current git branch (`poc/KEY`), else `gh pr view --json title,body`, else the newest folder under `pocs/`.
 2. If no key: ask for `PROJ-123` and stop.
 3. `node scripts/irfp.mjs status --key <KEY>` (if no state, this is **Start**).
 
-The human who invoked this command is the operator (same role as PR author for local gates). If a GitHub PR exists for this branch, keep PR comments in sync. Do not invent business rules.
+The human who invoked this command is the operator (same gate as a human on the Jira issue). When Jira MCP is available, post Q1 / TASK PLAN / stop messages on the **Jira issue**. Do not invent business rules.
 
 ## Start (no run, or phase fetch/analyze)
 
-Follow orchestrator **Start**: init-run, fetch Jira RFP via MCP, `mark-rfp-fetched`, launch **rfp-analyst**, then **requirements-planner**. Show open `Q1`… questions in this chat. Write only `pocs/<KEY>/docs/` until `/irfp-approve`. No app code.
+Follow orchestrator **Start (Jira)**: init-run, branch `poc/<KEY>`, fetch Jira RFP via MCP, `mark-rfp-fetched`, launch **rfp-analyst**, then **requirements-planner**. Show open `Q1`… questions in this chat **and** on Jira. Write only `pocs/<KEY>/docs/` until `/irfp-approve`. No app code.
 
 ## Continue (run exists)
 

@@ -14,7 +14,7 @@ Product hard rules in `Readme.md` (or equivalent) plus `.cursor/rules/` win over
 
 ## MCP
 
-Document which MCP is in use, who may call which operations, and when to use git/`gh` instead. IRFP example: `docs/mcp.md` (Jira read-only for the RFP).
+Document which MCP is in use, who may call which operations, and when to use git/`gh` instead. IRFP example: `docs/mcp.md` (Jira read + comment for the RFP and gates).
 
 ## Agent skills
 

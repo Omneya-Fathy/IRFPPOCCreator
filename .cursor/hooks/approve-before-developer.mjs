@@ -7,7 +7,7 @@ const DENY = {
   permission: "deny",
   user_message: "Developer blocked: TASK PLAN is not approved for this run.",
   agent_message:
-    "Hard rule 10. Run node scripts/irfp.mjs mark-approved --key <JIRA-KEY> only after the PR author comments /approve or runs /irfp-approve. Do not generate app code first.",
+    "Hard rule 10. Run node scripts/irfp.mjs mark-approved --key <JIRA-KEY> only after a human comments /approve on Jira or runs /irfp-approve. Do not generate app code first.",
 };
 
 try {
