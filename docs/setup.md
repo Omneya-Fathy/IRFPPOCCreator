@@ -27,7 +27,7 @@ Tools: **Jira MCP (read + comment)**, **git/gh** for branch `poc/<KEY>` and PR c
 
 1. Attach an RFP file on the Jira issue (filename matching **RFP**).
 2. Move the user story to **Ready**. The Start automation fetches the attachment, stamps `mark-rfp-fetched`, then launches `rfp-analyst`.
-3. If both an HTML and a DOCX RFP are attached, Start takes the **HTML** only. Other multiple RFP files: it comments the list on Jira and waits. After a human names a file, Continue runs `mark-selected-attachment`.
+3. Start always downloads one RFP automatically: among RFP-named attachments (or all attachments if none match the name), it picks the **latest upload**. It does not wait for a human to choose a filename.
 4. Code is not generated until a human comments `/approve` (or `/irfp-approve` in Cursor). After green Vitest the agent pushes `poc/<KEY>` and opens **one** GitHub PR.
 
 ## 5. Cursor slash commands
@@ -48,7 +48,6 @@ node scripts/irfp.mjs hooks-selftest
 Any **human** on the Jira issue (or the human who ran the Cursor command) may:
 
 - Answer `Q1` / `A1` (Jira comment or `/irfp-answer`)
-- Choose an attachment
 - Comment `/approve` / `/revise`, or run `/irfp-approve` / `/irfp-feedback`
 
 Ignore comments from the connected MCP/automation Atlassian user and any body that starts with `**[IRFP POC Creator]**`.

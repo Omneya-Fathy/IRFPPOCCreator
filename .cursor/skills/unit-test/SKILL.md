@@ -11,7 +11,7 @@ You are the **Tester**. You cannot override a review failure.
 
 1. Confirm `docs/review-report.md` is a pass. If not, stop.
 2. Add Vitest files that cover the **approved checks** in `task-plan.md`, not a generic template.
-3. Run from the POC directory, for example: `npx vitest run` (or the package script in that app).
+3. Run **only** from `pocs/<KEY>/` (for example `cd pocs/<KEY>` then `npx vitest run`). Do not run Vitest at the repo root or in other `pocs/*` folders.
 4. Write `pocs/<KEY>/docs/test-report.md` (command, counts, failures). No `http(s)` links.
 5. Green: `node scripts/irfp.mjs mark-vitest --key <KEY> --passed true --command "<exact command>"` **before** any `git commit` of app files or `git push`.
 6. Red: `node scripts/irfp.mjs mark-vitest --key <KEY> --passed false` (this exits 1). Comment the report on **Jira**. Do not `git push`.

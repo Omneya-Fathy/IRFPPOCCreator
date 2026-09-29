@@ -25,7 +25,7 @@ Follow orchestrator **Start (Jira)**: init-run, branch `poc/<KEY>`, fetch Jira R
 
 Follow orchestrator **Continue** using this chat as the comment stream. Route:
 
-- Attachment choice → `mark-selected-attachment` then analyst if needed
+- Attachment choice → only when a human **explicitly names a different filename** to re-fetch; default Start already uses the latest upload
 - Answers → tell the user to use `/irfp-answer` unless arguments already contain `A1`/`A2` text (then treat as answers)
 - Plan feedback → `/irfp-feedback`
 - Approval → `/irfp-approve` only; this command must not treat “looks good” as `/approve`

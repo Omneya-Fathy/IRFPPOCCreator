@@ -25,13 +25,13 @@ Use Atlassian MCP `addOrEditJiraIssueComment`:
 
 ### Start (Jira webhook — primary)
 
-Trigger: user story status **Ready** and an attachment whose name matches **RFP** (Cloud Agent filter). Do not wait for a GitHub PR.
+Trigger: Jira webhook (User Story **created** and/or status **Ready** with RFP attachment—match your automation). Do not wait for a GitHub PR.
 
 1. Resolve **`issueKey`** from the webhook payload (`issue.key` or equivalent). If only an issue id is present, load the issue with Jira MCP (`getJiraIssue`) and take the key. If the payload has neither, stop (cannot comment without a key).
 2. `node scripts/irfp.mjs init-run --key <KEY>` (creates `pocs/<KEY>/`, sets default branch `poc/<KEY>`).
 3. **Branch:** `git fetch` then checkout or create `poc/<KEY>`. All docs commits go on this branch. No PR is required yet.
 4. Jira MCP: cache `cloudId`; load the issue; list attachments.
-5. **RFP selection:** prefer attachments whose filename contains or equals `RFP` (case-insensitive). If the webhook already guarantees one matching file, auto-select it. **HTML over DOCX:** if the remaining set includes both an `.html` / `.htm` file and a `.docx` file, auto-select the HTML only (do not download or analyze the DOCX). If several HTML files remain, or several files remain that are not this HTML+DOCX pair, comment the file list on Jira and **stop** until Continue + `mark-selected-attachment`. Zero attachments: comment and stop.
+5. **RFP selection (no human pick):** Build candidates: attachments whose filename contains `RFP` (case-insensitive). If that set is empty, use **all** issue attachments. If zero attachments, comment and stop. If one candidate, use it. If **multiple**, auto-select the **latest** by Jira attachment **created** time (newest upload wins). Do **not** comment a file list and wait; do **not** require Continue or `mark-selected-attachment` for the default path. Tie-break when created times are equal or missing: prefer `.html` / `.htm`, then `.docx`, then others. After choosing, you may note on Jira which filename was used (prefix `**[IRFP POC Creator]**`); do not block the pipeline for confirmation.
 6. Download the chosen RFP into `pocs/<KEY>/.run/rfp/` (gitignored). Do not commit the binary.
 7. `node scripts/irfp.mjs mark-rfp-fetched --key <KEY> --files <names>`
 8. Launch the **rfp-analyst** subagent (`subagent_type: rfp-analyst`). Prompt must include `You are the RFP Analyst.` so the RFP hook matches. Do not write app code. Analyst owns capabilities, UI requirements, and UI direction in `docs/rfp-brief.md`.
@@ -49,7 +49,7 @@ Identity gate (do this first, every time):
 
 Then:
 
-1. Attachment choice (filename the human named): `mark-selected-attachment`, download if needed, then `rfp-analyst` if analysis has not run.
+1. **Optional attachment override:** If a human comment names a **specific filename** and fetch/analysis has not completed (or they ask to re-run on a different file), run `mark-selected-attachment`, download that file, then `rfp-analyst` if analysis has not run. Otherwise do not stop Start for multiple attachments.
 2. `A1` / threaded answers: launch **requirements-planner** to update `docs/ambiguity-log.md` and plan files; comment remaining gaps on Jira. Docs-only git commits are allowed.
 3. `/revise` from a human: launch **requirements-planner**; do not generate.
 4. `/approve` from a human: `node scripts/irfp.mjs mark-approved --key <KEY>` then generate → review → Vitest → push / create PR.
