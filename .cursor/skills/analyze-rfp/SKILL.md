@@ -14,7 +14,7 @@ You are the **RFP Analyst**. Read-only on the RFP. Do not write application code
 
 ## Steps
 
-1. Read every fetched RFP file. If PDF/DOCX, extract text as far as tools allow. If unreadable, say so on **Jira** and stop.
+1. Read every fetched RFP file. Prefer `.html` / `.htm` over `.docx` if both are present. If PDF/DOCX, extract text as far as tools allow. If unreadable, say so on **Jira** and stop.
 2. Fill `pocs/<KEY>/docs/rfp-brief.md` from `templates/poc-docs/rfp-brief.md`. Complete every section, including **UI requirements** and **UI direction**. When visuals are unspecified, **inference is required** — not optional filler.
 3. List **blocking** gaps only (unnamed business rules, conflicting statements, screens that cannot be derived from capabilities). Missing branding or visual design is **not** blocking — put it in UI direction.
 4. Set phase: `node scripts/irfp.mjs set-phase --key <KEY> --phase questions`
