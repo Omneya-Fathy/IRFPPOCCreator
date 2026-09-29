@@ -13,7 +13,7 @@ The **orchestrator** (Cloud Agent Start / Continue, or `/irfp-orchestrator`) fet
 - List attachments
 - Download the chosen RFP file into `pocs/<KEY>/.run/rfp/` (gitignored). When several attachments qualify, choose the **latest** upload; do not wait for human confirmation.
 - `addOrEditJiraIssueComment` for Q1, TASK PLAN, errors, review/test/push summaries (markdown; prefix `**[IRFP POC Creator]**`)
-- Optional `listJiraIssueComments` only to detect duplicates
+- **`listJiraIssueComments`** on **Continue** — paginate (`startAt` until `isLast`) to load the full human thread; merge `A1`… and honor `/approve` / `/revise` (see orchestrator Continue). Optional on Start.
 
 ## Denied
 

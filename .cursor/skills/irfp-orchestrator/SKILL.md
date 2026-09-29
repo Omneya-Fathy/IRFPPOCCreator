@@ -40,12 +40,19 @@ Trigger: Jira webhook (User Story **created** and/or status **Ready** with RFP a
 
 ### Continue (Jira comment webhook)
 
-Identity gate (do this first, every time):
+Identity gate on the **webhook comment** (do this first, every time):
 
-1. Read comment **author `accountId`** and **body** from the webhook payload. If `issue.key` or body is missing, comment on the issue that the payload is incomplete (if you have a key) and stop. Do not guess fields.
-2. Call **`atlassianUserInfo`**. If the commenter `accountId` equals the connected user → **ignore** (no files, no replies, no `/approve`).
-3. If the body starts with `**[IRFP POC Creator]**` → **ignore** (loop guard).
-4. Any other human commenter may answer, `/approve`, or `/revise`.
+1. Read **`issue.key`**, comment **author `accountId`**, and **body** from the webhook payload. If `issue.key` is missing, stop. If comment body or author is missing, use **Load comments** (below) and treat the **newest human** comment as the trigger; if none, stop.
+2. Call **`atlassianUserInfo`**. If the **webhook** commenter `accountId` equals the connected user → **ignore** (no files, no replies; loop guard).
+3. If the **webhook** body starts with `**[IRFP POC Creator]**` → **ignore**.
+4. Any other human **webhook** commenter may proceed.
+
+**Load comments (required after the gate passes):**
+
+1. Call **`listJiraIssueComments`** with `cloudId`, `issueIdOrKey`, `orderBy`: `created`, `maxResults`: 100. Paginate with `startAt` until `isLast` is true (do not rely on `getJiraIssue` alone — it embeds at most ~20 comments).
+2. Build the **human thread**: drop comments whose author `accountId` is the connected MCP user and drop bodies starting with `**[IRFP POC Creator]**`.
+3. Reconcile **`A1`…** answers from **all** human comments into `docs/ambiguity-log.md` (not only the webhook body). Use **`pocs/<KEY>/docs/ambiguity-log.md`** as source of truth; do not duplicate lines already logged.
+4. **Commands:** if the **newest** human comment is `/revise`, run revise flow. If the **newest** human comment is `/approve` (and blocking questions are answered per the log), run approve flow. If the newest comment is an answer, run planner. Older `/approve` without a newer human `/revise` does not apply if a later human comment superseded it — prefer **newest** human comment for the command; still merge **all** `A1`… text from the full thread.
 
 Then:
 
