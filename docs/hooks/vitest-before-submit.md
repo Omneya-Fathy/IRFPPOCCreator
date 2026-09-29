@@ -12,7 +12,11 @@ Block `git commit` / `git push` of POC app code until Vitest passed. Docs-only c
 
 ## Policy
 
-On `git commit` or `git push`, if the run is in generate/review/test/push (or the POC has app code), require `state.json` `vitestPassed: true` or `pocs/<JIRA-KEY>/.run/vitest-pass.json` with `"ok": true`.
+On `git commit` or `git push`, require Vitest only for **Jira keys in scope** for that operation (paths in the commit or in commits being pushed, plus branch `poc/<KEY>` on push). Other folders under `pocs/` are not checked.
+
+If a scoped key is in generate/review/test/push (or has app code) and the operation includes non-docs files under that key, require `state.json` `vitestPassed: true` or `pocs/<JIRA-KEY>/.run/vitest-pass.json` with `"ok": true`.
+
+Run Vitest from that POC directory only (`cd pocs/<JIRA-KEY>`), not across the whole repo.
 
 Also denies force-push (`-f`, `--force`, `--force-with-lease`).
 
