@@ -12,7 +12,7 @@ For IRFP runs in this repo, **IRFP hard rules** in `Readme.md` and `.cursor/rule
 
 ## MCP
 
-Use **Jira MCP** only to read the issue and download the RFP attachment. Use `gh` and git for the GitHub PR. Never invent an RFP. Details: `docs/mcp.md`.
+Use **Jira MCP** to read the issue, download the RFP attachment, and **comment on the issue** (`addOrEditJiraIssueComment`). Use `gh` and git for the GitHub branch and one PR after Vitest. Never invent an RFP. Details: `docs/mcp.md`.
 
 ## Agent skills
 
@@ -36,7 +36,7 @@ Project agents in `.cursor/agents/` (Task `subagent_type`):
 | Verification | `reviewer` | `docs/review-report.md` | Approving the original task list |
 | Verification | `tester` | Vitest + `docs/test-report.md` + `mark-vitest` | Push on red; override a failed review |
 
-Always start from **irfp-orchestrator**. Delegate each pipeline stage to the matching subagent. Do not jump to `developer` without `/approve` from the PR author (PR comment) or `/irfp-approve` (Cursor command).
+Always start from **irfp-orchestrator**. Delegate each pipeline stage to the matching subagent. Do not jump to `developer` without `/approve` from a human on the Jira issue or `/irfp-approve` (Cursor command).
 
 ## Slash commands
 
@@ -48,8 +48,8 @@ Catalog (arguments, defaults, safety notes): `docs/commands.md`. Files in `.curs
 2. Write application code and POC docs only under `pocs/<JIRA-KEY>/`.
 3. Canonical artifacts: `pocs/<JIRA-KEY>/docs/*.md` (templates in `templates/poc-docs/`).
 4. Gate stamps: `node scripts/irfp.mjs` (see `--help` via default usage string).
-5. Gates: PR comments `Q1`/`A1`, `TASK PLAN`, `/approve`, `/revise`, **or** the matching Cursor commands. Only the PR author (or the human who ran the command) can approve.
-6. Never force-push. Never open a second PR. Never commit secrets or RFP binaries.
+5. Gates: Jira comments `Q1`/`A1`, `TASK PLAN`, `/approve`, `/revise`, **or** the matching Cursor commands. Any human on the issue (or the human who ran the command) may approve; ignore the automation account.
+6. Never force-push. Never open a second PR for the same Jira key. Never commit secrets or RFP binaries.
 7. Default stack when the RFP is silent: Next.js App Router + TypeScript, full-stack, local/fake data, Vitest.
 
 ## Hooks

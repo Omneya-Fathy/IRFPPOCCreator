@@ -29,11 +29,12 @@ Commands:
   parse-key                 Print first Jira key from --title then --body
   init-run                  Create pocs/<KEY>/docs and .run state
   mark-rfp-fetched          Stamp that RFP attachments were downloaded (--files a,b)
-  mark-selected-attachment  Record which attachment(s) the PR author chose (--files a)
+  mark-selected-attachment  Record which attachment(s) the operator chose (--files a)
   scaffold-poc              Copy templates/poc-next into pocs/<KEY>/ (does not overwrite docs)
   set-phase                 Set run phase (--phase name)
-  mark-approved             PR author /approve recorded
+  mark-approved             Human /approve recorded
   mark-vitest               Stamp Vitest result (--passed true|false)
+  mark-pr-linked            Record GitHub PR number after create-once (--number N)
   status                    Print run state
   verify-structure          Check orchestrator files exist
   hooks-selftest            Run deny/allow checks for Q3 policy hooks
@@ -41,6 +42,7 @@ Commands:
 
 Options:
   --key PROJ-123   --title t   --body b   --files a,b   --phase name   --passed true|false
+  --number N   --branch poc/KEY   --cloud-id uuid
   --command "npx vitest run"
 `;
 }
@@ -88,7 +90,13 @@ switch (cmd) {
   case "init-run": {
     const key = requireKey();
     ensurePocSkeleton(key);
-    const state = saveState(root, key, { phase: "fetch", rfpFetched: false, approved: false, vitestPassed: false });
+    const state = saveState(root, key, {
+      phase: "fetch",
+      rfpFetched: false,
+      approved: false,
+      vitestPassed: false,
+      branch: `poc/${key}`,
+    });
     console.log(JSON.stringify(state, null, 2));
     break;
   }
@@ -115,7 +123,7 @@ switch (cmd) {
   case "mark-selected-attachment": {
     const key = requireKey();
     const files = parseFiles();
-    if (!files.length) fail("Pass --files with the attachment name(s) the PR author chose.");
+    if (!files.length) fail("Pass --files with the attachment name(s) the operator chose.");
     const state = loadState(root, key);
     const known = state?.attachments || [];
     const unknown = files.filter((f) => known.length && !known.includes(f));
@@ -162,6 +170,19 @@ switch (cmd) {
     const key = requireKey();
     if (!args.phase) fail("Pass --phase <name>.");
     console.log(JSON.stringify(saveState(root, key, { phase: args.phase }), null, 2));
+    break;
+  }
+  case "mark-pr-linked": {
+    const key = requireKey();
+    const numberRaw = args.number;
+    if (numberRaw == null || numberRaw === true) fail("Pass --number <GitHub PR number>.");
+    const prNumber = Number(numberRaw);
+    if (!Number.isInteger(prNumber) || prNumber < 1) fail("Pass --number with a positive integer.");
+    const patch = { prNumber };
+    if (typeof args.branch === "string" && args.branch) patch.branch = args.branch;
+    else if (!loadState(root, key)?.branch) patch.branch = `poc/${key}`;
+    if (typeof args["cloud-id"] === "string" && args["cloud-id"]) patch.jiraCloudId = args["cloud-id"];
+    console.log(JSON.stringify(saveState(root, key, patch), null, 2));
     break;
   }
   case "mark-approved": {

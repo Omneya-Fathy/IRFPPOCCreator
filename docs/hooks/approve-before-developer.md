@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Stop POC app generation until the PR author approves the TASK PLAN.
+Stop POC app generation until a human approves the TASK PLAN (`/approve` on Jira or `/irfp-approve`).
 
 ## Lifecycle
 

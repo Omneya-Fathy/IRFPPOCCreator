@@ -7,11 +7,11 @@
 ### Q1
 
 - Asked:
-- Answer (PR author):
+- Answer (Jira / operator):
 - Status: open | answered
 
 ## Answered
 
 ## Ignored comments
 
-Comments from anyone other than the PR author (do not use for gates).
+Comments from the automation account or bodies prefixed `**[IRFP POC Creator]**` (do not use for gates).

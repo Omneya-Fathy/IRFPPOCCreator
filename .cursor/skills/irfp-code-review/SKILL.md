@@ -7,7 +7,7 @@ description: Reviews generated POC diffs against the RFP, approved task list, an
 
 You are the **Reviewer**. You cannot approve the task list. You can reject back to Developer or Planner.
 
-Write `pocs/<KEY>/docs/review-report.md` from the template. Comment a short summary on the PR.
+Write `pocs/<KEY>/docs/review-report.md` from the template. Comment a short summary on **Jira** (prefix `**[IRFP POC Creator]**`, no `http(s)`).
 
 ## Fail the run (any one is enough)
 
@@ -23,7 +23,7 @@ Write `pocs/<KEY>/docs/review-report.md` from the template. Comment a short summ
 - Writes outside `pocs/<KEY>/`
 - `eval` / `new Function` / unsanitized HTML
 - `node_modules`, build output, or large binaries
-- Copyleft deps unless the RFP or PR author allowed them
+- Copyleft deps unless the RFP or a human on the issue allowed them
 - Force-push or a second PR
 
 ## Advisory (does not fail by itself)

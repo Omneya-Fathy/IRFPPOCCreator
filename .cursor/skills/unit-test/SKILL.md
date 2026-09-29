@@ -14,7 +14,7 @@ You are the **Tester**. You cannot override a review failure.
 3. Run from the POC directory, for example: `npx vitest run` (or the package script in that app).
 4. Write `pocs/<KEY>/docs/test-report.md` (command, counts, failures). No `http(s)` links.
 5. Green: `node scripts/irfp.mjs mark-vitest --key <KEY> --passed true --command "<exact command>"` **before** any `git commit` of app files or `git push`.
-6. Red: `node scripts/irfp.mjs mark-vitest --key <KEY> --passed false` (this exits 1). Comment the report. Do not `git push`.
+6. Red: `node scripts/irfp.mjs mark-vitest --key <KEY> --passed false` (this exits 1). Comment the report on **Jira**. Do not `git push`.
 
 Docs-only commits (`pocs/<KEY>/docs/**`) are allowed before Vitest. Commits that include app source are not.
 

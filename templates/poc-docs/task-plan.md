@@ -1,6 +1,6 @@
 # Task plan
 
-Comment this same checklist on the PR as `TASK PLAN`. Wait for the PR author to comment `/approve`.
+Comment this same checklist on the Jira issue as `TASK PLAN`. Wait for a human to comment `/approve` or run `/irfp-approve`.
 
 - Jira key:
 - Status: waiting-for-approve | approved | revise

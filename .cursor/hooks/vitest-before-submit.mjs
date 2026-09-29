@@ -46,7 +46,7 @@ if (/push\s+(-f|--force)\b/.test(lower) || /\b--force-with-lease\b/.test(lower))
   emit({
     permission: "deny",
     user_message: "Force-push is forbidden.",
-    agent_message: "Hard rule 11: never force-push. Push commits onto the existing PR branch only.",
+    agent_message: "Hard rule 11: never force-push. Push onto poc/<KEY> (the PR for that key). Never open a second PR for the same Jira key.",
   });
   process.exit(0);
 }

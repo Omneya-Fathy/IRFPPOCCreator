@@ -11,7 +11,7 @@ When invoked:
 
 1. Diff `pocs/<KEY>/` against `docs/rfp-brief.md` (explicit UI requirements + UI direction) and `docs/task-plan.md`. Theme from inferred direction on planned screens is not a fail. Extra screens or ignoring explicit specs is a fail.
 2. Write `docs/review-report.md` from `templates/poc-docs/review-report.md`.
-3. Comment a short pass/fail summary on the PR.
+3. Comment a short pass/fail summary on **Jira**.
 
 Fail the run on any of: UI drift, theme tokens not applied when the plan required mapping (including still-default scaffold `:root`), Demo appeal unmet when the task plan required it (no focal point, generic dashboard, Lorem-style data), missing implied loading/empty/error states, secrets, `http(s)` hrefs/CDNs, extra scope, invented rules, writes outside `pocs/<KEY>/`, dangerous patterns, large binaries, copyleft deps unless allowed. Record advisory residual taste notes only **after** retokenize and signature pattern are present.
 
