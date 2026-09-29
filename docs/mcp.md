@@ -11,7 +11,7 @@ The **orchestrator** (Cloud Agent Start / Continue, or `/irfp-orchestrator`) fet
 - Resolve an issue from a key (`PROJ-123`)
 - `getAccessibleAtlassianResources` (cache `cloudId`) and `atlassianUserInfo` (Continue loop guard)
 - List attachments
-- Download the chosen RFP file into `pocs/<KEY>/.run/rfp/` (gitignored)
+- Download the chosen RFP file into `pocs/<KEY>/.run/rfp/` (gitignored). If HTML and DOCX are both attached, download the HTML only.
 - `addOrEditJiraIssueComment` for Q1, TASK PLAN, errors, review/test/push summaries (markdown; prefix `**[IRFP POC Creator]**`)
 - Optional `listJiraIssueComments` only to detect duplicates
 

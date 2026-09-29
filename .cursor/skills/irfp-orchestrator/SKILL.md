@@ -31,7 +31,7 @@ Trigger: user story status **Ready** and an attachment whose name matches **RFP*
 2. `node scripts/irfp.mjs init-run --key <KEY>` (creates `pocs/<KEY>/`, sets default branch `poc/<KEY>`).
 3. **Branch:** `git fetch` then checkout or create `poc/<KEY>`. All docs commits go on this branch. No PR is required yet.
 4. Jira MCP: cache `cloudId`; load the issue; list attachments.
-5. **RFP selection:** prefer attachments whose filename contains or equals `RFP` (case-insensitive). If the webhook already guarantees one matching file, auto-select it. If several match, comment the file list on Jira and **stop** until Continue + `mark-selected-attachment`. Zero attachments: comment and stop.
+5. **RFP selection:** prefer attachments whose filename contains or equals `RFP` (case-insensitive). If the webhook already guarantees one matching file, auto-select it. **HTML over DOCX:** if the remaining set includes both an `.html` / `.htm` file and a `.docx` file, auto-select the HTML only (do not download or analyze the DOCX). If several HTML files remain, or several files remain that are not this HTML+DOCX pair, comment the file list on Jira and **stop** until Continue + `mark-selected-attachment`. Zero attachments: comment and stop.
 6. Download the chosen RFP into `pocs/<KEY>/.run/rfp/` (gitignored). Do not commit the binary.
 7. `node scripts/irfp.mjs mark-rfp-fetched --key <KEY> --files <names>`
 8. Launch the **rfp-analyst** subagent (`subagent_type: rfp-analyst`). Prompt must include `You are the RFP Analyst.` so the RFP hook matches. Do not write app code. Analyst owns capabilities, UI requirements, and UI direction in `docs/rfp-brief.md`.

@@ -155,7 +155,7 @@ Each step has a required input, an owner, an output, and a gate. A failed gate s
 | # | Step | Owner | Input | Output | Gate |
 | --- | --- | --- | --- | --- | --- |
 | 0 | Pre-check | Hook + Start agent | Jira webhook | Issue key; issue reachable | Missing key → stop and comment. |
-| 1 | Fetch RFP | Orchestrator + Jira MCP | Jira issue | RFP attachment bytes + story fields | **Hook: RFP attachment exists before analyst.** Zero attachments → stop. Multiple RFP matches → ask a human which file(s) to use. |
+| 1 | Fetch RFP | Orchestrator + Jira MCP | Jira issue | RFP attachment bytes + story fields | **Hook: RFP attachment exists before analyst.** Zero attachments → stop. HTML + DOCX together → take the HTML. Other multiple matches → ask a human which file(s) to use. |
 | 2 | Analyze RFP | RFP Analyst | RFP file(s) | `docs/rfp-brief.md` + Jira summary comment | Brief covers description, capabilities, UI requirements (explicit vs derived), and UI direction. Blocking gaps are business rules/conflicts only — missing branding is filled as inferred direction. File committed under `pocs/<JIRA-KEY>/docs/`. |
 | 3 | Resolve ambiguities | Requirements Planner | Brief | Numbered questions on **Jira** + `docs/ambiguity-log.md` | Every blocking gap has a reply from a **human**. Log updated after each reply. No silent defaults for business rules. |
 | 4 | Plan technical requirements | Requirements Planner | Brief + answers | `docs/technical-plan.md` + Jira summary comment | Stack (RFP or Next.js), screens, routes, local data, Vitest checks. Still no app code. |
@@ -321,7 +321,8 @@ The Developer writes only under `pocs/<JIRA-KEY>/`. Merging a PR may leave that 
 | No Jira key in the webhook | Stop. Comment if a key can still be resolved. |
 | Issue not found / Jira MCP fails | Stop. Comment the error without leaking secrets. |
 | No RFP attachment | Stop. Hook blocks the analyst. |
-| Several RFP attachments, none chosen | Comment the file list on Jira. Wait for a human. |
+| HTML and DOCX RFP attachments | Auto-select the HTML. Do not wait. |
+| Several RFP attachments, none chosen (not HTML+DOCX) | Comment the file list on Jira. Wait for a human. |
 | Blocking ambiguity, no human reply | Do not generate tasks or code. |
 | Task list not approved by a human | Do not generate code. |
 | Review finds any hard-rule violation (UI drift, secrets, `http(s)` hrefs, scope creep, dangerous patterns, disallowed deps/licenses, large binaries, writes outside `pocs/<JIRA-KEY>/`, and so on) | Do not push. Comment findings on Jira. Return to Developer or Planner. |

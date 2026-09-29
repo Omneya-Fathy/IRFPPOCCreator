@@ -16,7 +16,7 @@ Extract `issue.key` (or equivalent). If the payload has no issue key and no issu
 
 - Resolve the Jira key from the webhook
 - Checkout or create branch `poc/<KEY>`
-- Fetch the Jira issue **attachment** (RFP) via Jira MCP
+- Fetch the Jira issue **attachment** (RFP) via Jira MCP. If both HTML (`.html` / `.htm`) and DOCX are attached, download and analyze the **HTML** only.
 - Launch the **rfp-analyst** then **requirements-planner** subagents
 - Analyze the RFP and post questions + a draft TASK PLAN as **Jira comments** (`addOrEditJiraIssueComment`, prefix `**[IRFP POC Creator]**`)
 - Write `pocs/<JIRA-KEY>/docs/` only
