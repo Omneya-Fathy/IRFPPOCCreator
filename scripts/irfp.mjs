@@ -29,7 +29,7 @@ Commands:
   parse-key                 Print first Jira key from --title then --body
   init-run                  Create pocs/<KEY>/docs and .run state
   mark-rfp-fetched          Stamp that RFP attachments were downloaded (--files a,b)
-  mark-selected-attachment  Record which attachment(s) the operator chose (--files a)
+  mark-selected-attachment  Record operator override filename (--files a) after listing in state
   scaffold-poc              Copy templates/poc-next into pocs/<KEY>/ (does not overwrite docs)
   set-phase                 Set run phase (--phase name)
   mark-approved             Human /approve recorded
