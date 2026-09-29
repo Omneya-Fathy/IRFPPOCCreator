@@ -25,7 +25,7 @@ Use Atlassian MCP `addOrEditJiraIssueComment`:
 
 ### Start (Jira webhook — primary)
 
-Trigger: user story status **Ready** and an attachment whose name matches **RFP** (Cloud Agent filter). Do not wait for a GitHub PR.
+Trigger: Jira webhook (User Story **created** and/or status **Ready** with RFP attachment—match your automation). Do not wait for a GitHub PR.
 
 1. Resolve **`issueKey`** from the webhook payload (`issue.key` or equivalent). If only an issue id is present, load the issue with Jira MCP (`getJiraIssue`) and take the key. If the payload has neither, stop (cannot comment without a key).
 2. `node scripts/irfp.mjs init-run --key <KEY>` (creates `pocs/<KEY>/`, sets default branch `poc/<KEY>`).

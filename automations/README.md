@@ -4,7 +4,7 @@ Create **two** automations on this repository. Do not combine them. Do not trigg
 
 | Name | Event | Ignore drafts | Tools | Instructions |
 | --- | --- | --- | --- | --- |
-| IRFP — Start on Jira Ready | Webhook: story status → Ready **and** attachment named RFP | n/a | Jira MCP (read + comment), git/gh | `automations/start.md` |
+| IRFP — Start | Webhook: User Story **created** and/or **Ready** + RFP (your Jira rule) | n/a | Jira MCP (read + comment), git | `automations/start.md` |
 | IRFP — Continue on Jira comment | Webhook: comment added on the user story | n/a | Jira MCP (read + comment), git/gh | `automations/continue.md` |
 
 Repo: `Omneya-Fathy/IRFPPOCCreator` (this repository).
