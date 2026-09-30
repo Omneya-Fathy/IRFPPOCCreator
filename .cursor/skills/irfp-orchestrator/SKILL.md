@@ -77,8 +77,8 @@ Optional for local/`gh`-driven runs. Extract the first Jira key from PR title th
 
 ## Generate after `/approve`
 
-1. **developer** subagent — first `node scripts/irfp.mjs scaffold-poc --key <KEY>` (skips existing docs). Retokenize `globals.css` + `theme-tokens.ts` from the selected **UI design brief** and get `theme-wiring.test.ts` green **before** routes. Then implement the approved plan. Do not invent a new concept while coding. Developer must not re-analyze the RFP.
-2. **reviewer** subagent — fail closed on any hard-rule miss. May commit `docs/review-report.md` only (docs-only commit allowed without Vitest). Comment a short pass/fail on **Jira**.
+1. **developer** subagent — first `node scripts/irfp.mjs scaffold-poc --key <KEY>` (Next.js + Vitest + Tailwind + `components/ui`; skips existing docs). Retokenize `globals.css` + `theme-tokens.ts` from the selected **UI design brief** and get `theme-wiring.test.ts` green **before** routes. Then implement the approved plan (UI/server under `pocs/<KEY>/`). Do not invent a new concept while coding. Developer must not re-analyze the RFP.
+2. **reviewer** subagent — fail closed on any hard-rule miss, including retokenized-scaffold UI (tokens without shell/type/signature weight) and red/missing `theme-wiring.test.ts`. May commit `docs/review-report.md` only (docs-only commit allowed without Vitest). Comment a short pass/fail on **Jira**.
 3. **tester** subagent — Vitest in the POC directory. Stamp `mark-vitest` **before** committing app files or pushing.
 4. `node scripts/irfp.mjs mark-vitest --key <KEY> --passed true` only after a green run.
 5. Commit `pocs/<KEY>/` (app + docs) on branch `poc/<KEY>` (or `state.branch`). Never `--force`.
