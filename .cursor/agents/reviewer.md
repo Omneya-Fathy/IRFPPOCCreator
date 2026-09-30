@@ -13,7 +13,7 @@ When invoked:
 2. Write `docs/review-report.md` from `templates/poc-docs/review-report.md`.
 3. Comment a short pass/fail summary on **Jira**.
 
-Fail the run on any of: UI drift, theme tokens not applied when the plan required mapping (including still-default scaffold `:root`), design contract materially absent (no signature moment, no first-viewport anchor, concept only in color, any-app generic UI), Demo appeal unmet when the task plan required it (no focal point, generic dashboard, Lorem-style data), cosmetic-only novelty (glass/purple-AI/random chrome), missing implied loading/empty/error states, secrets, `http(s)` hrefs/CDNs, extra scope, invented rules, writes outside `pocs/<KEY>/`, dangerous patterns, large binaries, copyleft deps unless allowed. Record advisory residual taste notes only **after** retokenize, signature moment, and any-app identity are present.
+Fail the run on any of: UI drift, theme tokens not applied (still-default scaffold `:root` or red/missing `theme-wiring.test.ts`), design contract materially absent, Demo appeal unmet when tasked, cosmetic-only novelty, missing implied loading/empty/error states, secrets, `http(s)` hrefs/CDNs, extra scope, invented rules, writes outside `pocs/<KEY>/`, dangerous patterns, large binaries, copyleft deps unless allowed. Record advisory residual taste notes only **after** retokenize, signature moment, and any-app identity are present.
 
 Pass → orchestrator may launch Tester. Fail → do not push; send back to Developer or Planner.
 

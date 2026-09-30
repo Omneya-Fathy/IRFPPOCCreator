@@ -9,6 +9,7 @@ Lightweight fail-closed checks. Policy only — no embedded secrets, no network.
 | `vitest-before-submit` | Pushing on red tests | [vitest-before-submit.md](./vitest-before-submit.md) | yes |
 | `protect-orchestrator` | Editing orchestrator files mid-generate | [protect-orchestrator.md](./protect-orchestrator.md) | yes |
 | `no-external-urls` | Clickable `http(s)` in the POC | [no-external-urls.md](./no-external-urls.md) | yes |
+| `poc-tailwind-wired` | Root layout / globals without Tailwind wiring | [poc-tailwind-wired.md](./poc-tailwind-wired.md) | yes |
 | `no-secrets-in-poc` | Keys/tokens in fixtures or `.env` | [no-secrets-in-poc.md](./no-secrets-in-poc.md) | yes |
 
 Test on a branch: `node scripts/hooks-selftest.mjs`

@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { findRepoRoot, saveState } from "./irfp-lib.mjs";
-import { findExternalUrlIssue, findSecretIssue, isDeveloperLaunch } from "./hook-policy.mjs";
+import { findExternalUrlIssue, findSecretIssue, findTailwindWiringIssue, isDeveloperLaunch } from "./hook-policy.mjs";
 
 const root = findRepoRoot();
 
@@ -57,6 +57,24 @@ check("policy: URL scan", () => {
   assert(findExternalUrlIssue('href="https://example.com"') === "http(s) URL", "https");
   assert(findExternalUrlIssue('import { Inter } from "next/font/google"') === "next/font/google", "font");
   assert(findExternalUrlIssue('href="/about"') == null, "local route");
+});
+
+check("policy: tailwind wiring scan", () => {
+  assert(
+    findTailwindWiringIssue("pocs/PROJ-1/app/layout.tsx", "export default function RootLayout() { return null; }") ===
+      "root app/layout.tsx must import ./globals.css",
+    "layout import",
+  );
+  assert(
+    findTailwindWiringIssue("pocs/PROJ-1/app/layout.tsx", 'import "./globals.css";\nexport default function RootLayout() { return null; }') ==
+      null,
+    "layout ok",
+  );
+  assert(
+    findTailwindWiringIssue("pocs/PROJ-1/app/globals.css", ":root { --primary: red; }") ===
+      "globals.css must include @tailwind base",
+    "globals tailwind",
+  );
 });
 
 check("policy: secret scan does not echo values", () => {
@@ -129,6 +147,25 @@ try {
     const { json } = runHook("no-external-urls.mjs", {
       path: tsx,
       contents: 'export default function Page() { return <a href="/about">x</a>; }',
+    });
+    assert(json.permission === "allow", `expected allow, got ${JSON.stringify(json)}`);
+  });
+
+  const rootLayout = path.join(poc, "app", "layout.tsx");
+  fs.mkdirSync(path.dirname(rootLayout), { recursive: true });
+
+  check("tailwind: deny root layout without globals import", () => {
+    const { json } = runHook("poc-tailwind-wired.mjs", {
+      path: rootLayout,
+      contents: "export default function RootLayout() { return null; }",
+    });
+    assert(json.permission === "deny", `expected deny, got ${JSON.stringify(json)}`);
+  });
+
+  check("tailwind: allow root layout with globals import", () => {
+    const { json } = runHook("poc-tailwind-wired.mjs", {
+      path: rootLayout,
+      contents: 'import "./globals.css";\nexport default function RootLayout() { return null; }',
     });
     assert(json.permission === "allow", `expected allow, got ${JSON.stringify(json)}`);
   });

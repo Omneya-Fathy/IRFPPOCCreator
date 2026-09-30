@@ -95,6 +95,32 @@ export function findExternalUrlIssue(text) {
   return null;
 }
 
+const POC_ROOT_LAYOUT = /^pocs\/[A-Z][A-Z0-9]+-\d+\/app\/layout\.tsx$/i;
+const POC_GLOBALS_CSS = /^pocs\/[A-Z][A-Z0-9]+-\d+\/app\/globals\.css$/i;
+
+export function shouldScanTailwindWiring(relPosix) {
+  const n = relPosix.replace(/\\/g, "/");
+  return POC_ROOT_LAYOUT.test(n) || POC_GLOBALS_CSS.test(n);
+}
+
+/** Fail closed when Tailwind/CSS variables cannot apply (unstyled POC). */
+export function findTailwindWiringIssue(relPosix, text) {
+  const n = relPosix.replace(/\\/g, "/");
+  if (POC_ROOT_LAYOUT.test(n) && !/import\s+["']\.\/globals\.css["']/.test(text || "")) {
+    return "root app/layout.tsx must import ./globals.css";
+  }
+  if (POC_GLOBALS_CSS.test(n) && !/@tailwind\s+base\b/.test(text || "")) {
+    return "globals.css must include @tailwind base";
+  }
+  if (POC_GLOBALS_CSS.test(n) && !/@tailwind\s+components\b/.test(text || "")) {
+    return "globals.css must include @tailwind components";
+  }
+  if (POC_GLOBALS_CSS.test(n) && !/@tailwind\s+utilities\b/.test(text || "")) {
+    return "globals.css must include @tailwind utilities";
+  }
+  return null;
+}
+
 function isPlaceholderValue(value) {
   const v = String(value).trim();
   if (PLACEHOLDER.test(v)) return true;

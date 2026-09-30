@@ -61,6 +61,7 @@ Project hooks in `.cursor/hooks.json` fail closed. One-pagers: `docs/hooks/`.
 - `git commit` / `git push` of POC **app** code cannot run until `mark-vitest --passed true`
 - After generate phase, writes to orchestrator files are denied
 - POC UI/markdown cannot contain `http(s)` URLs or `next/font/google`
+- Root `pocs/<JIRA-KEY>/app/layout.tsx` must keep `import "./globals.css"`; `app/globals.css` must keep `@tailwind` layers (`poc-tailwind-wired` hook)
 - POC files cannot contain secret patterns (keys, tokens, private keys); values are not echoed
 
 `approve-before-developer` is **unregistered** in `hooks.json` for now. `/approve` / `/irfp-approve` and `mark-approved` remain required by skills and the orchestrator. Script still at `.cursor/hooks/approve-before-developer.mjs`.

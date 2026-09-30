@@ -12,7 +12,7 @@ Write `pocs/<KEY>/docs/review-report.md` from the template. Comment a short summ
 ## Fail the run (any one is enough)
 
 - UI drift from **explicit** UI requirements (or a named design system). Applying the brief’s **UI direction** and **UI design brief** (theme, density, composition, signature moment) on approved screens is expected, not drift. Extra screens or restyling away from explicit specs is fail.
-- Root `app/layout.tsx` missing `import "./globals.css";` (or equivalent path to the POC global stylesheet) for Next.js App Router POCs — tokens in `globals.css` alone are insufficient.
+- Root `app/layout.tsx` missing `import "./globals.css"`; `globals.css` missing `@tailwind` layers; or missing/failing `lib/theme-wiring.test.ts` (still-scaffold tokens).
 - UI direction or design contract copied into the plan but tokens clearly not applied (e.g. a task check maps theme onto `globals.css` `:root` and the diff shows no token change, or values still match scaffold defaults).
 - Approved **UI design contract** materially absent: concept only in colors; no first-viewport visual anchor; no signature moment from the brief; repetitive card → card → card when the contract required rhythm; or the UI would pass as any generic SaaS app with the name/logo removed.
 - Task plan includes theme/demo-appeal/signature-pattern checks and **Demo appeal** is clearly unmet: generic dashboard, no first-viewport focal point, or `Lorem`/repeated “Test User” data.

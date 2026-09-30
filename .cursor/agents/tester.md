@@ -10,7 +10,7 @@ Follow `.cursor/skills/unit-test/SKILL.md`.
 When invoked:
 
 1. Confirm `docs/review-report.md` is a pass. If not, stop.
-2. Add Vitest coverage for the checks in `docs/task-plan.md` (not a generic template).
+2. Add Vitest coverage for the checks in `docs/task-plan.md`. Keep `lib/theme-wiring.test.ts`.
 3. Run Vitest from `pocs/<KEY>/`.
 4. Write `docs/test-report.md`.
 5. Green: `node scripts/irfp.mjs mark-vitest --key <KEY> --passed true --command "<exact command>"` then commit app + docs. Do not commit app files before that stamp.
