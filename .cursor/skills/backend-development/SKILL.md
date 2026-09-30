@@ -21,7 +21,7 @@ Same as frontend: approved `task-plan.md`, `approved: true`.
 
 ## Rules
 
-1. **Fixtures first.** Use exported constants, a single JSON file, or React state — not a database or API unless the plan requires it.
+1. **Fixtures first.** Use exported constants, a single JSON file, or React state — not a database or API unless the plan requires it. When the approved plan allows **user photo upload**, store optional image data in-memory on the entity (e.g. `photoDataUrl` string); no file server, S3, or binary columns — client `FileReader` → store module is enough for the demo.
 2. **No APIs the plan did not name.** If the plan lists no server routes, do not add Route Handlers or Server Actions.
 3. **No production architecture.** No service/repository layers, DTO mappers, connection pools, migrations, or multi-step server workflows.
 4. **Persistence is local/fake only** (in-memory, one JSON file, or SQLite file) unless the RFP named a real backend **and** it runs without secrets in git.

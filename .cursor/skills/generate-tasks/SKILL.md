@@ -1,6 +1,6 @@
 ---
 name: generate-tasks
-description: Turns an RFP brief plus human/operator answers into ambiguity log, technical plan, and TASK PLAN under pocs/<JIRA-KEY>/docs/. Copies UI direction from the brief; expands thin direction before TASK PLAN; does not start coding. Use when acting as the Requirements Planner, posting Q1 questions, handling /revise or /irfp-feedback, or waiting for /approve.
+description: Turns an RFP brief plus human/operator answers into ambiguity log, technical plan, and TASK PLAN under pocs/<JIRA-KEY>/docs/. Copies UI direction and the selected UI design-brief contract; expands thin direction or an incomplete design brief before TASK PLAN; does not start coding. Use when acting as the Requirements Planner, posting Q1 questions, handling /revise or /irfp-feedback, or waiting for /approve.
 ---
 
 # Generate tasks
@@ -9,13 +9,13 @@ You are the **Requirements Planner**. You own questions, `technical-plan.md`, `t
 
 ## Steps
 
-1. Read `pocs/<KEY>/docs/rfp-brief.md`. If missing, stop.
+1. Read `pocs/<KEY>/docs/rfp-brief.md` and `pocs/<KEY>/docs/ui-design-brief.md`. If the brief is missing, stop. If the design brief is missing on a **new** run, expand it from `.cursor/skills/frontend-development/ui-direction.md` before posting `TASK PLAN`. Do not rewrite an already-approved POC’s design unless `/revise` asks.
 2. Write blocking questions as `Q1`, `Q2`, … on the **Jira issue** (and in chat when invoked via `/irfp-orchestrator` or `/irfp-answer`). Prefix agent Jira posts with `**[IRFP POC Creator]**`. Copy the same items into `docs/ambiguity-log.md` from the template. Ask only **business-rule** and underivable-flow gaps. Do **not** ask for branding, colors, or “how it should look” when `## UI direction` is filled. No `http(s)` in comments.
 3. For each operator answer (`A1`, a thread reply, or `/irfp-answer`), append to the log. Do not invent unanswered rules.
-4. When blocking questions are answered, verify `## UI direction` in the brief is **sufficient**: Tone non-empty; Density `low` | `moderate` | `high`; Context at least one sentence; Notes at least **two** implementable lines (focal layout, signature element, restraint); **Demo quality** is `modern, demo-impressive-within-restraint`. If not, expand inference in `docs/rfp-brief.md` (or document a human override in `technical-plan.md`). Do not post an approve-ready `TASK PLAN` with thin direction. Do **not** ask branding Qs when direction is already filled.
+4. When blocking questions are answered, verify `## UI direction` in the brief is **sufficient**: Tone non-empty; Density `low` | `moderate` | `high`; Context at least one sentence; Notes at least **two** implementable lines (focal layout, signature element, restraint); **Demo quality** is `modern, demo-impressive-within-restraint`. Also verify `docs/ui-design-brief.md`: three directions that differ in metaphor/composition/interaction; selected scores; signature moment; memorable-moment and any-app answers that are not “modern” / “nice colors.” If not, expand inference in the brief and design brief (or document a human override in `technical-plan.md`). Do not post an approve-ready `TASK PLAN` with thin direction or a missing/generic design brief. Do **not** ask branding Qs when direction is already filled.
 5. Then write:
-   - `docs/technical-plan.md` (stack, screens, routes, **UI direction copied from the brief**, local data, Vitest checks)
-   - `docs/task-plan.md` (ordered tasks + checks, 1:1 with later code). Screens come from explicit + derived UI requirements, not from extra polish ideas.
+   - `docs/technical-plan.md` (stack, screens, routes, **UI direction copied from the brief**, **UI design contract** from the selected design brief, local data, Vitest checks)
+   - `docs/task-plan.md` (ordered tasks + checks, 1:1 with later code). Screens come from explicit + derived UI requirements, not from extra polish ideas. Include testable (or Reviewer-owned) checks for: domain-specific identity, first-viewport visual anchor, hierarchy, signature moment, visual rhythm, realistic demo data, responsive adaptation of the concept, purposeful interaction/motion only if approved, anti-pattern avoidance, and token mapping.
 6. Comment `TASK PLAN` plus the checklist on **Jira**. The comment must match `task-plan.md`.
 7. `node scripts/irfp.mjs set-phase --key <KEY> --phase plan`
 8. Stop and wait.
@@ -31,13 +31,18 @@ You do not generate. Tell the orchestrator the plan is approved. Orchestrator ru
 ## Stack rule
 
 - RFP names a framework → that framework.
-- RFP silent → Next.js App Router + TypeScript, demo UI, static/in-memory fake data. First task: **Map brief UI direction onto existing scaffold tokens (`app/globals.css` `:root`) and layout shell; do not reinstall Tailwind.** Include checks that: (1) Vitest asserts primary/muted/card CSS variables **differ from scaffold defaults** and match the brief tone; (2) the primary route implements the Notes **signature pattern**; (3) Final visual QA **Demo appeal** and **Hierarchy** apply (document in `review-report.md` if not unit-testable). Extra CSS deps only if the RFP names another CSS approach (still `tailwindcss` / `postcss` / `autoprefixer` only for the default stack).
+- RFP silent → Next.js App Router + TypeScript, demo UI, static/in-memory fake data. First task: **Map brief UI direction and the selected design-brief contract onto existing scaffold tokens (`app/globals.css` `:root`) and layout shell; do not reinstall Tailwind.** Include checks that: (1) Vitest asserts primary/muted/card CSS variables **differ from scaffold defaults** and match the brief tone; (2) the primary route implements the Notes **signature pattern** and the design-brief **signature moment**; (3) Final visual QA **Demo appeal**, **Hierarchy**, **Memorable moment**, and **Any-app test** apply (document in `review-report.md` if not unit-testable); (4) Vitest asserts root `app/layout.tsx` imports `./globals.css`; (5) fixtures look realistic (no `Lorem`, no repeated “Test User”). Extra CSS deps only if the RFP names another CSS approach (still `tailwindcss` / `postcss` / `autoprefixer` only for the default stack).
 - A human on the issue may override in a Jira comment.
 
 ## Task quality
 
 Each task is implementable and testable. Each check becomes a Vitest case. No extra screens, APIs, or libraries. Prefer fixtures and in-memory state; add server code or persistence only when the demo requires it.
 
-When the brief asks for covers/thumbnails/product photos but does **not** supply image files, task-plan checks should reference **typographic cover tiles** (`TypographicCover`), not “local cover image assets” or generated art under `public/`.
+When the brief names a **photo / cover / thumbnail** field, resolve in Q1 or `technical-plan.md` POC defaults:
 
-Copy `## UI direction` from the brief into `technical-plan.md` unchanged (except human overrides), including Demo quality and full Notes. The Developer applies it as theme; the Planner does not invent new screens to “match” the tone.
+- **User upload allowed (POC):** file input on create/edit; in-memory `photoDataUrl` (or equivalent); display `<img>` when set; else `TypographicCover` with **title** + **subtitle** (metadata). Vitest: with and without upload.
+- **Typographic only:** no file input; always `TypographicCover` (title + optional subtitle). Say so explicitly in the plan (e.g. SCRUM-12-style Q1).
+
+Never task “cover image assets” under `public/` or stock photography. Pre-supplied RFP attachments are the only committed image files unless the plan names them.
+
+Copy `## UI direction` from the brief into `technical-plan.md` unchanged (except human overrides), including Demo quality and full Notes. Copy the **selected** design-brief contract into `## UI design contract`. The Developer implements that concept; the Planner does not invent new screens to “match” the tone or metaphor.

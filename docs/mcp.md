@@ -35,7 +35,7 @@ This is a proof that MCP works end-to-end. It is **not** one of the 15 IRFP hard
 1. Ready Jira story (or `/irfp-orchestrator`) names a Jira key; Start webhook or chat supplies it.
 2. Agent loads the issue via Jira MCP (not a pasted file).
 3. Agent lists attachments, downloads the chosen RFP, `node scripts/irfp.mjs mark-rfp-fetched --key <KEY> --files <names>`.
-4. `rfp-analyst` writes `pocs/<KEY>/docs/rfp-brief.md`.
+4. `rfp-analyst` writes `pocs/<KEY>/docs/rfp-brief.md` and `pocs/<KEY>/docs/ui-design-brief.md`.
 5. Orchestrator posts `Q1` / `TASK PLAN` with `addOrEditJiraIssueComment`.
 
 **Status in this tree:** not yet proven. `pocs/` has no generated run.
