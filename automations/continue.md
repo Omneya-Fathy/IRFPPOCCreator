@@ -6,35 +6,67 @@ Read `AGENTS.md` and `.cursor/skills/irfp-orchestrator/SKILL.md` in this reposit
 
 ## Trigger
 
-A comment was added on the Jira user story (webhook). The webhook wakes the run; **do not rely on a single comment body alone.**
+A comment was added on the Jira user story (webhook).
 
 ## Webhook payload
 
-Extract `issue.key`, comment `body`, and comment author `accountId` when present. If `issue.key` is missing, stop.
+Extract `issue.key`, comment `body`, and comment author `accountId`. If any of these are missing, comment on the issue (if you have a key) that the payload is incomplete and stop. Do not invent field names.
 
-## Identity gate (webhook comment only)
+## Identity gate
 
-Do this **before** loading the full thread:
+Do this first, every time:
 
-- Call `atlassianUserInfo`. If the **webhook** commenter `accountId` is the **connected MCP/automation user**: **ignore** (exit; no files, no replies).
-- If the **webhook** body starts with `**[IRFP POC Creator]**`: **ignore**.
-- If the webhook comment is from a human, continue.
+- Call `atlassianUserInfo`. If the commenter `accountId` is the **connected MCP/automation user**: ignore (no files, no replies).
+- If the body starts with `**[IRFP POC Creator]**`: ignore.
+- Any other human commenter may answer, `/approve`, or `/revise`.
 
-## Load all Jira comments
+## Actions (planning only)
 
-After the gate passes:
+- Answers (`A1` or thread replies): update `pocs/<JIRA-KEY>/docs/ambiguity-log.md` and plan docs. Comment remaining gaps on **Jira**.
 
-1. Call **`listJiraIssueComments`** (`cloudId`, `issueIdOrKey`, `orderBy`: `created`, paginate until `isLast`).
-2. Filter out the automation account and any body starting with `**[IRFP POC Creator]**`.
-3. Merge every human **`A1`…** line into `pocs/<JIRA-KEY>/docs/ambiguity-log.md` (skip duplicates already in the log).
-4. Route from the **newest human** comment: `/revise`, `/approve`, or answers → **requirements-planner** or generate pipeline per the orchestrator skill.
+- `/revise`: update plan docs, post a new `TASK PLAN` on Jira, do not generate code.
 
-Do not tell humans to approve on a GitHub PR. Gates are **Jira comments only**.
+## `/approve` — full pipeline (generate then deliver)
 
-## Actions
+**Never skip code generation because push or `gh` might fail.** Run **GitHub delivery** only after the POC exists, Vitest is green, and you have committed on `poc/<KEY>`—except **resume** (below), which retries delivery only.
 
-- Answers: launch **requirements-planner**; update plan docs; comment remaining gaps on **Jira**.
-- `/revise`: planner updates docs; new `TASK PLAN` on Jira; no app code.
-- `/approve` from a human (newest comment, blocking Qs answered): **developer** → **reviewer** → **tester**; after green Vitest, push `poc/<KEY>` and **`gh pr create` once** if needed. Summarize on Jira as `GitHub PR #N on branch poc/KEY` (no `http(s)`).
+On `/approve` from a human:
 
-Do not start a new full analysis from this event. Do not attach this flow to git push events.
+1. `node scripts/irfp.mjs mark-approved --key <KEY>`.
+2. `git fetch origin`; checkout **`poc/<KEY>`** (create from `main` if missing).
+3. `node scripts/irfp.mjs status --key <KEY>`.
+4. **Resume:** If `vitestPassed` is true and `pocs/<KEY>/` has a full app (`package.json`, `app/`, tests), **skip** steps 5–9 and go to **GitHub delivery** below.
+5. Launch **developer** (`scaffold-poc` if needed).
+6. Launch **reviewer** (fail closed).
+7. Launch **tester**; green Vitest only.
+8. `node scripts/irfp.mjs mark-vitest --key <KEY> --passed true`.
+9. **Commit** all of `pocs/<KEY>/` on `poc/<KEY>`. Never `--force`.
+
+### GitHub delivery (required on every `/approve` that reaches step 4 or 9)
+
+You **must** push code and ensure **one open PR** per Jira key. Do not stop after Jira comments until you have tried delivery or reported a concrete error.
+
+1. Branch: `poc/<KEY>` (or `state.branch`).
+2. **Auth (delivery phase only):** `gh auth status`. If `gh` is authenticated, run `gh auth setup-git` so `git push` uses GitHub credentials. If not authenticated, rely on this automation’s **GitHub repo integration (write)**; retry push after fetch.
+3. Discover PR: `gh pr list --head poc/<KEY> --state open --json number,headRefName` and/or `gh pr list --search "<KEY>" --state open --json number,headRefName`. If `state.prNumber` is set, confirm that PR is still open.
+4. **Push (always):** `git push -u origin poc/<KEY>`. If rejected, pull/rebase onto `origin/poc/<KEY>` (no `--force`), fix conflicts, recommit if needed, push again.
+5. **Create PR if none:** If there is **no** open PR for this key, **`gh pr create` once**:
+   - Base: `main`
+   - Head: `poc/<KEY>`
+   - Title includes `<KEY>` (e.g. `<KEY> — IRFP POC`)
+   - Body: Jira summary, scope, Vitest passed; plain text, no clickable `http(s)` URLs
+6. `node scripts/irfp.mjs mark-pr-linked --key <KEY> --number <N> --branch poc/<KEY>`.
+7. If a PR **already** exists: push to **that** head branch only. Never open a **second** PR for the same key.
+
+**If push or `gh pr create` still fails:** Keep all local commits and app code. Comment on **Jira** (prefix `**[IRFP POC Creator]**`): Vitest status, branch, short SHA, error summary, and that **delivery failed**. Ask the operator to enable **GitHub write** on this Cloud Agent for `IRFPPOCCreator`, then comment **`/approve` again** to retry delivery when `vitestPassed` is true.
+
+**Success Jira line (no `http(s)`):** `GitHub PR #N on branch poc/KEY`.
+
+## Forbidden
+
+- Skipping developer/reviewer/tester on `/approve` when the app is not built and `vitestPassed` is false.
+- Checking `gh auth` or pushing **before** generate completes (unless resume skip applies).
+- Ending the run with “done” when `pocs/<KEY>/` has only `docs/` and no app.
+- Force-push; second PR for the same key.
+
+Do not start a new analysis from this comment. Do not attach this flow to “code pushed” events.

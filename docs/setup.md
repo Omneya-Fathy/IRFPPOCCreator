@@ -21,7 +21,7 @@ See `automations/README.md`. Do not combine them. Do not trigger on git push (th
 | IRFP — Start on Jira Ready | Webhook: status → Ready **and** attachment named RFP | Branch `poc/<KEY>`; Jira comments only |
 | IRFP — Continue on Jira comment | Webhook: comment on the user story | Human comments only; ignore agent `accountId` and `**[IRFP POC Creator]**` |
 
-Tools: **Jira MCP (read + comment)**, **git/gh** for branch `poc/<KEY>` and PR create-once after Vitest.
+**Continue — tools in Cursor UI:** **Atlassian** (required), **Open Pull Request** (required for push + one PR per key), **Comment on Pull Request** (optional; gates stay on Jira). **Memories** optional. Prompt: `docs/automation-continue.md` (from `# IRFP — Continue`). Prefer **Open Pull Request** over shell `gh` when the CLI is not authenticated.
 
 ## 4. How a run should start
 
