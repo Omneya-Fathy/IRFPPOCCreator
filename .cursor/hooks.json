@@ -46,6 +46,12 @@
         "timeout": 15
       },
       {
+        "command": "node .cursor/hooks/poc-tailwind-wired.mjs",
+        "matcher": "Write|StrReplace|EditNotebook",
+        "failClosed": true,
+        "timeout": 15
+      },
+      {
         "command": "node .cursor/hooks/no-secrets-in-poc.mjs",
         "matcher": "Write|StrReplace|EditNotebook",
         "failClosed": true,
@@ -60,6 +66,11 @@
       },
       {
         "command": "node .cursor/hooks/no-external-urls.mjs",
+        "failClosed": true,
+        "timeout": 15
+      },
+      {
+        "command": "node .cursor/hooks/poc-tailwind-wired.mjs",
         "failClosed": true,
         "timeout": 15
       },
