@@ -17,9 +17,9 @@ Use **Jira MCP** to read the issue, download the RFP attachment, and **comment o
 ## Agent skills
 
 - `.cursor/skills/irfp-orchestrator/SKILL.md` — entry point for start/continue
-- `.cursor/skills/analyze-rfp/SKILL.md` — RFP Analyst
+- `.cursor/skills/analyze-rfp/SKILL.md` — RFP Analyst (brief + `docs/ui-design-brief.md`)
 - `.cursor/skills/generate-tasks/SKILL.md` — Requirements Planner
-- `.cursor/skills/frontend-development/SKILL.md` — Developer demo UI from brief UI direction + scaffold tokens/`components/ui` (not a greenfield Tailwind install). First-glance appeal and domain retokenize required; no extra screens.
+- `.cursor/skills/frontend-development/SKILL.md` — Developer demo UI from approved tasks + selected UI design brief + brief UI requirements (scaffold tokens/`components/ui`, not a greenfield Tailwind install). First-glance appeal, domain retokenize, and concept propagation required; no extra screens.
 - `.cursor/skills/backend-development/SKILL.md` — Developer minimal fake data (fixtures first)
 - `.cursor/skills/irfp-code-review/SKILL.md` — Reviewer
 - `.cursor/skills/unit-test/SKILL.md` — Tester
@@ -30,7 +30,7 @@ Project agents in `.cursor/agents/` (Task `subagent_type`):
 
 | Q3 role | Subagent | Owns | Must not |
 | --- | --- | --- | --- |
-| Exploration | `rfp-analyst` | `docs/rfp-brief.md` (capabilities, UI requirements, UI direction) | Code, task list, approval, invented business rules |
+| Exploration | `rfp-analyst` | `docs/rfp-brief.md` + `docs/ui-design-brief.md` (capabilities, UI requirements, UI direction, selected design concept) | Code, task list, approval, invented business rules |
 | Exploration | `requirements-planner` | Questions, plan docs, `TASK PLAN` | Code; cannot skip `/approve` |
 | Execution | `developer` | Demo POC under `pocs/<KEY>/` after `/approve` | Production architecture; orchestrator files; invented rules |
 | Verification | `reviewer` | `docs/review-report.md` | Approving the original task list |

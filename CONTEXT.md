@@ -6,5 +6,6 @@
 - **Human on the Jira issue** — any human commenter except the connected MCP/automation account; may answer ambiguities and comment `/approve` or `/revise` (or the matching Cursor commands `/irfp-answer`, `/irfp-approve`, `/irfp-feedback`).
 - **Operator** — the human who ran a Cursor slash command (same gate as a Jira human).
 - **TASK PLAN** — Jira comment that must match `docs/task-plan.md`.
-- **RFP brief** — `docs/rfp-brief.md`: capabilities, UI requirements (explicit vs derived), UI direction.
+- **RFP brief** — `docs/rfp-brief.md`: capabilities, UI requirements (explicit vs derived), UI direction (compatibility summary).
+- **UI design brief** — `docs/ui-design-brief.md`: three candidate directions, selected concept, signature moment, implementation contract. Canonical visual/interaction concept for new runs.
 - **Orchestrator files** — everything outside `pocs/`. Developers must not edit them during a run.

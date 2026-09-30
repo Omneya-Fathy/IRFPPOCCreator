@@ -7,6 +7,15 @@ description: Routes IRFP POC Creator runs from a Jira issue (RFP attachment + co
 
 Read `Readme.md` and `AGENTS.md` first. You are the only entry point. Do not skip gates.
 
+Pipeline for visual work:
+
+```text
+RFP → requirements analysis → UI/product ideation → docs/ui-design-brief.md
+  → technical/task planning → human approval → frontend implementation → design-aware review
+```
+
+The Developer consumes the selected design brief. They do not invent the design while coding.
+
 Gates live on **Jira issue comments**. GitHub is for **code delivery** only (one PR per Jira key after green Vitest).
 
 ## How to comment on Jira
@@ -34,8 +43,8 @@ Trigger: Jira webhook (User Story **created** and/or status **Ready** with RFP a
 5. **RFP selection (no human pick):** Build candidates: attachments whose filename contains `RFP` (case-insensitive). If that set is empty, use **all** issue attachments. If zero attachments, comment and stop. If one candidate, use it. If **multiple**, auto-select the **latest** by Jira attachment **created** time (newest upload wins). Do **not** comment a file list and wait; do **not** require Continue or `mark-selected-attachment` for the default path. Tie-break when created times are equal or missing: prefer `.html` / `.htm`, then `.docx`, then others. After choosing, you may note on Jira which filename was used (prefix `**[IRFP POC Creator]**`); do not block the pipeline for confirmation.
 6. Download the chosen RFP into `pocs/<KEY>/.run/rfp/` (gitignored). Do not commit the binary.
 7. `node scripts/irfp.mjs mark-rfp-fetched --key <KEY> --files <names>`
-8. Launch the **rfp-analyst** subagent (`subagent_type: rfp-analyst`). Prompt must include `You are the RFP Analyst.` so the RFP hook matches. Do not write app code. Analyst owns capabilities, UI requirements, and UI direction in `docs/rfp-brief.md`.
-9. Launch the **requirements-planner** subagent for questions + draft plan docs. Planner copies UI direction into `technical-plan.md`; it does not restyle. If UI direction is insufficient, Planner expands it in the brief before `TASK PLAN`. Analyst and Planner own the minimum UI direction fields (Tone, Density, Context, Notes ≥ two lines, Demo quality).
+8. Launch the **rfp-analyst** subagent (`subagent_type: rfp-analyst`). Prompt must include `You are the RFP Analyst.` so the RFP hook matches. Do not write app code. Analyst owns capabilities, UI requirements, UI direction in `docs/rfp-brief.md`, and the canonical concept in `docs/ui-design-brief.md` (three directions, selected scores, signature moment).
+9. Launch the **requirements-planner** subagent for questions + draft plan docs. Planner copies UI direction and the **selected UI design contract** into `technical-plan.md`; it does not restyle or pick a fourth direction. If UI direction or the design brief is insufficient, Planner expands them in the docs before `TASK PLAN`. Analyst and Planner own the minimum UI direction fields (Tone, Density, Context, Notes ≥ two lines, Demo quality) **and** a complete design brief.
 10. Post `Q1`… and `TASK PLAN` on the **Jira issue** only (not a GitHub PR). Commit only `pocs/<KEY>/docs/` if you must persist files. Docs-only commits are allowed before Vitest. No app source.
 
 ### Continue (Jira comment webhook)
@@ -68,7 +77,7 @@ Optional for local/`gh`-driven runs. Extract the first Jira key from PR title th
 
 ## Generate after `/approve`
 
-1. **developer** subagent — first `node scripts/irfp.mjs scaffold-poc --key <KEY>` (Next.js + Vitest + Tailwind + `components/ui`; skips existing docs). Retokenize scaffold primitives from brief UI direction; do not invent a greenfield design system. Then implement UI/server under `pocs/<KEY>/` from the approved plan plus brief UI requirements/direction. Analyst and Planner own **minimum UI direction** before this step. Developer must not re-analyze the RFP files.
+1. **developer** subagent — first `node scripts/irfp.mjs scaffold-poc --key <KEY>` (Next.js + Vitest + Tailwind + `components/ui`; skips existing docs). Retokenize scaffold primitives from the selected **UI design brief** + brief UI direction; do not invent a greenfield design system or a new concept while coding. Then implement UI/server under `pocs/<KEY>/` from the approved plan plus brief UI requirements/direction/design contract. Analyst and Planner own **minimum UI direction** and the design brief before this step. Developer must not re-analyze the RFP files.
 2. **reviewer** subagent — fail closed on any hard-rule miss. May commit `docs/review-report.md` only (docs-only commit allowed without Vitest). Comment a short pass/fail on **Jira**.
 3. **tester** subagent — Vitest in the POC directory. Stamp `mark-vitest` **before** committing app files or pushing.
 4. `node scripts/irfp.mjs mark-vitest --key <KEY> --passed true` only after a green run.

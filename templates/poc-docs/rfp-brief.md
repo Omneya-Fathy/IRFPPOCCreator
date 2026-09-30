@@ -20,7 +20,7 @@ Screens, workflows, and UI affordances implied by capabilities. Each item must m
 
 ## UI direction
 
-Fill every bullet. No TBD or empty tone. Sufficient = Tone + Density + Context (one sentence) + Notes (two implementable lines: focal layout, signature element, restraint) + Demo quality.
+Compatibility summary only. Canonical concept lives in `docs/ui-design-brief.md` (three directions, selected metaphor, signature moment). Sufficient = Tone + Density + Context (one sentence) + Notes (two implementable lines: focal layout, signature element, restraint) + Demo quality + pointer to the design brief.
 
 - Source: explicit | inferred
 - Tone:
@@ -28,6 +28,7 @@ Fill every bullet. No TBD or empty tone. Sufficient = Tone + Density + Context (
 - Density: low | moderate | high
 - Demo quality: modern, demo-impressive-within-restraint
 - Notes: (at least two lines — focal layout, one signature element, restraint; implementable theme, not new features)
+- Design brief: `docs/ui-design-brief.md` (required for new runs)
 
 ## Framework
 

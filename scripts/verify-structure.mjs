@@ -38,6 +38,7 @@ export const REQUIRED_PATHS = [
   "scripts/irfp.mjs",
   "scripts/irfp-lib.mjs",
   "templates/poc-docs/rfp-brief.md",
+  "templates/poc-docs/ui-design-brief.md",
   "templates/poc-docs/ambiguity-log.md",
   "templates/poc-docs/technical-plan.md",
   "templates/poc-docs/task-plan.md",
