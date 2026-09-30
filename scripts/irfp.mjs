@@ -4,17 +4,32 @@ import path from "node:path";
 import {
   copyDir,
   docsDir,
-  findRepoRoot,
+  findPluginRoot,
+  findWorkspaceRoot,
   hasAppCode,
+  HOST_CLI_SHIM,
+  irfpConfigPath,
   loadState,
   parseJiraKey,
   pocDir,
+  resolveRoots,
   runDir,
   saveState,
   templatePocNext,
+  writeJson,
 } from "./irfp-lib.mjs";
 
-const root = findRepoRoot();
+function getRoots() {
+  try {
+    return resolveRoots();
+  } catch {
+    const workspaceRoot = findWorkspaceRoot();
+    const pluginRoot = findPluginRoot() || workspaceRoot;
+    return { pluginRoot, workspaceRoot };
+  }
+}
+
+const { pluginRoot, workspaceRoot } = getRoots();
 const [cmd, ...rest] = process.argv.slice(2);
 const args = Object.fromEntries(
   rest
@@ -26,6 +41,7 @@ function usage() {
   return `Usage: node scripts/irfp.mjs <command> [options]
 
 Commands:
+  setup                     Write .irfp/config.json and host CLI shim (any host repo)
   parse-key                 Print first Jira key from --title then --body
   init-run                  Create pocs/<KEY>/docs and .run state
   mark-rfp-fetched          Stamp that RFP attachments were downloaded (--files a,b)
@@ -36,7 +52,7 @@ Commands:
   mark-vitest               Stamp Vitest result (--passed true|false)
   mark-pr-linked            Record GitHub PR number after create-once (--number N)
   status                    Print run state
-  verify-structure          Check orchestrator files exist
+  verify-structure          Check plugin files exist
   hooks-selftest            Run deny/allow checks for Q3 policy hooks
   help                      Show this text
 
@@ -66,10 +82,10 @@ function requireKey() {
 }
 
 function ensurePocSkeleton(key) {
-  fs.mkdirSync(docsDir(root, key), { recursive: true });
-  fs.mkdirSync(runDir(root, key), { recursive: true });
-  const gitkeep = path.join(docsDir(root, key), ".gitkeep");
-  if (!fs.existsSync(gitkeep) && fs.readdirSync(docsDir(root, key)).length === 0) {
+  fs.mkdirSync(docsDir(workspaceRoot, key), { recursive: true });
+  fs.mkdirSync(runDir(workspaceRoot, key), { recursive: true });
+  const gitkeep = path.join(docsDir(workspaceRoot, key), ".gitkeep");
+  if (!fs.existsSync(gitkeep) && fs.readdirSync(docsDir(workspaceRoot, key)).length === 0) {
     fs.writeFileSync(gitkeep, "");
   }
 }
@@ -81,6 +97,24 @@ switch (cmd) {
     console.log(usage());
     break;
   }
+  case "setup": {
+    const roots = resolveRoots();
+    const cfg = { pluginRoot: roots.pluginRoot, workspaceRoot: roots.workspaceRoot };
+    writeJson(irfpConfigPath(roots.workspaceRoot), cfg);
+    const shimPath = path.join(roots.workspaceRoot, "scripts", "irfp.mjs");
+    const pluginCli = path.join(roots.pluginRoot, "scripts", "irfp.mjs");
+    if (path.resolve(shimPath) !== path.resolve(pluginCli)) {
+      fs.mkdirSync(path.dirname(shimPath), { recursive: true });
+      fs.writeFileSync(shimPath, HOST_CLI_SHIM, "utf8");
+    }
+    const agents = path.join(roots.workspaceRoot, "AGENTS.md");
+    const template = path.join(roots.pluginRoot, "templates", "AGENTS.md");
+    if (!fs.existsSync(agents) && fs.existsSync(template)) {
+      fs.copyFileSync(template, agents);
+    }
+    console.log(JSON.stringify({ ok: true, ...cfg }, null, 2));
+    break;
+  }
   case "parse-key": {
     const key = parseJiraKey(args.title || "", args.body || "");
     if (!key) fail("No Jira key found in title or body.");
@@ -90,7 +124,7 @@ switch (cmd) {
   case "init-run": {
     const key = requireKey();
     ensurePocSkeleton(key);
-    const state = saveState(root, key, {
+    const state = saveState(workspaceRoot, key, {
       phase: "fetch",
       rfpFetched: false,
       approved: false,
@@ -105,16 +139,16 @@ switch (cmd) {
     ensurePocSkeleton(key);
     const files = parseFiles();
     if (!files.length) fail("Pass --files name1,name2 of Jira attachments that were downloaded.");
-    const dest = path.join(runDir(root, key), "rfp");
+    const dest = path.join(runDir(workspaceRoot, key), "rfp");
     fs.mkdirSync(dest, { recursive: true });
-    const state = saveState(root, key, {
+    const state = saveState(workspaceRoot, key, {
       phase: "analyze",
       rfpFetched: true,
       attachments: files,
       selectedAttachments: files.length === 1 ? files : [],
     });
     fs.writeFileSync(
-      path.join(runDir(root, key), "rfp-fetched.json"),
+      path.join(runDir(workspaceRoot, key), "rfp-fetched.json"),
       `${JSON.stringify({ ok: true, files, at: state.updatedAt }, null, 2)}\n`,
     );
     console.log(JSON.stringify(state, null, 2));
@@ -124,13 +158,13 @@ switch (cmd) {
     const key = requireKey();
     const files = parseFiles();
     if (!files.length) fail("Pass --files with the attachment name(s) the operator chose.");
-    const state = loadState(root, key);
+    const state = loadState(workspaceRoot, key);
     const known = state?.attachments || [];
     const unknown = files.filter((f) => known.length && !known.includes(f));
     if (unknown.length) fail(`Attachment not in fetched list: ${unknown.join(", ")}`);
     console.log(
       JSON.stringify(
-        saveState(root, key, {
+        saveState(workspaceRoot, key, {
           selectedAttachments: files,
           rfpFetched: true,
           phase: state?.phase === "fetch" ? "analyze" : state?.phase,
@@ -144,24 +178,25 @@ switch (cmd) {
   case "scaffold-poc": {
     const key = requireKey();
     ensurePocSkeleton(key);
-    const src = templatePocNext(root);
+    const src = templatePocNext(pluginRoot);
     if (!fs.existsSync(src)) fail(`Missing template at ${src}`);
-    copyDir(src, pocDir(root, key), { skipExisting: true });
-    console.log(JSON.stringify({ ok: true, dest: pocDir(root, key) }, null, 2));
+    copyDir(src, pocDir(workspaceRoot, key), { skipExisting: true });
+    console.log(JSON.stringify({ ok: true, dest: pocDir(workspaceRoot, key) }, null, 2));
     break;
   }
   case "verify-structure": {
     const { verifyStructure } = await import("./verify-structure.mjs");
-    const result = verifyStructure(root);
+    const result = verifyStructure(pluginRoot);
     console.log(JSON.stringify(result, null, 2));
     if (!result.ok) process.exit(1);
     break;
   }
   case "hooks-selftest": {
     const { spawnSync } = await import("node:child_process");
-    const result = spawnSync(process.execPath, [path.join(root, "scripts", "hooks-selftest.mjs")], {
-      cwd: root,
+    const result = spawnSync(process.execPath, [path.join(pluginRoot, "scripts", "hooks-selftest.mjs")], {
+      cwd: workspaceRoot,
       stdio: "inherit",
+      env: { ...process.env, IRFP_PLUGIN_ROOT: pluginRoot },
     });
     process.exit(result.status ?? 1);
     break;
@@ -169,7 +204,7 @@ switch (cmd) {
   case "set-phase": {
     const key = requireKey();
     if (!args.phase) fail("Pass --phase <name>.");
-    console.log(JSON.stringify(saveState(root, key, { phase: args.phase }), null, 2));
+    console.log(JSON.stringify(saveState(workspaceRoot, key, { phase: args.phase }), null, 2));
     break;
   }
   case "mark-pr-linked": {
@@ -180,17 +215,17 @@ switch (cmd) {
     if (!Number.isInteger(prNumber) || prNumber < 1) fail("Pass --number with a positive integer.");
     const patch = { prNumber };
     if (typeof args.branch === "string" && args.branch) patch.branch = args.branch;
-    else if (!loadState(root, key)?.branch) patch.branch = `poc/${key}`;
+    else if (!loadState(workspaceRoot, key)?.branch) patch.branch = `poc/${key}`;
     if (typeof args["cloud-id"] === "string" && args["cloud-id"]) patch.jiraCloudId = args["cloud-id"];
-    console.log(JSON.stringify(saveState(root, key, patch), null, 2));
+    console.log(JSON.stringify(saveState(workspaceRoot, key, patch), null, 2));
     break;
   }
   case "mark-approved": {
     const key = requireKey();
-    const state = saveState(root, key, { phase: "generate", approved: true });
-    fs.mkdirSync(runDir(root, key), { recursive: true });
+    const state = saveState(workspaceRoot, key, { phase: "generate", approved: true });
+    fs.mkdirSync(runDir(workspaceRoot, key), { recursive: true });
     fs.writeFileSync(
-      path.join(runDir(root, key), "approved.json"),
+      path.join(runDir(workspaceRoot, key), "approved.json"),
       `${JSON.stringify({ ok: true, at: state.updatedAt }, null, 2)}\n`,
     );
     console.log(JSON.stringify(state, null, 2));
@@ -206,12 +241,12 @@ switch (cmd) {
       command: args.command || "npx vitest run",
       report,
     };
-    fs.mkdirSync(runDir(root, key), { recursive: true });
+    fs.mkdirSync(runDir(workspaceRoot, key), { recursive: true });
     fs.writeFileSync(
-      path.join(runDir(root, key), "vitest-pass.json"),
+      path.join(runDir(workspaceRoot, key), "vitest-pass.json"),
       `${JSON.stringify(stamp, null, 2)}\n`,
     );
-    const state = saveState(root, key, {
+    const state = saveState(workspaceRoot, key, {
       phase: passed ? "push" : "test",
       vitestPassed: passed,
     });
@@ -221,10 +256,14 @@ switch (cmd) {
   }
   case "status": {
     const key = requireKey();
-    const state = loadState(root, key);
+    const state = loadState(workspaceRoot, key);
     if (!state) fail(`No run state for ${key}.`);
     console.log(
-      JSON.stringify({ ...state, poc: pocDir(root, key), hasAppCode: hasAppCode(root, key) }, null, 2),
+      JSON.stringify(
+        { ...state, poc: pocDir(workspaceRoot, key), hasAppCode: hasAppCode(workspaceRoot, key) },
+        null,
+        2,
+      ),
     );
     break;
   }

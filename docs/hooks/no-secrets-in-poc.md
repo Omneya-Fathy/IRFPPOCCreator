@@ -7,7 +7,7 @@ Keep API keys, tokens, private keys, and real passwords out of the POC tree and 
 ## Lifecycle
 
 - Events: `preToolUse` (Write / StrReplace / EditNotebook), `afterFileEdit`, `beforeShellExecution`
-- Script: `.cursor/hooks/no-secrets-in-poc.mjs`
+- Script: `hooks/no-secrets-in-poc.mjs`
 - `failClosed`: true
 
 ## Policy

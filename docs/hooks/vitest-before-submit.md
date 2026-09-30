@@ -7,7 +7,7 @@ Block `git commit` / `git push` of POC app code until Vitest passed. Docs-only c
 ## Lifecycle
 
 - Events: `beforeShellExecution`
-- Script: `.cursor/hooks/vitest-before-submit.mjs`
+- Script: `hooks/vitest-before-submit.mjs`
 - `failClosed`: true
 
 ## Policy
