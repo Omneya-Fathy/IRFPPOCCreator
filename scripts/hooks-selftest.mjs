@@ -2,18 +2,14 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { findPluginRoot, findWorkspaceRoot, saveState } from "./irfp-lib.mjs";
+import { findRepoRoot, saveState } from "./irfp-lib.mjs";
 import { findExternalUrlIssue, findSecretIssue, findTailwindWiringIssue, isDeveloperLaunch } from "./hook-policy.mjs";
 
-const pluginRoot = process.env.IRFP_PLUGIN_ROOT
-  ? path.resolve(process.env.IRFP_PLUGIN_ROOT)
-  : findPluginRoot(path.dirname(fileURLToPath(import.meta.url))) || findPluginRoot();
-const workspaceRoot = findWorkspaceRoot();
+const root = findRepoRoot();
 
 function runHook(script, payload) {
-  const result = spawnSync(process.execPath, [path.join(pluginRoot, "hooks", script)], {
-    cwd: workspaceRoot,
+  const result = spawnSync(process.execPath, [path.join(root, ".cursor", "hooks", script)], {
+    cwd: root,
     encoding: "utf8",
     input: JSON.stringify(payload),
   });
@@ -89,10 +85,10 @@ check("policy: secret scan does not echo values", () => {
 });
 
 const key = `HOOK-${Date.now()}`;
-const poc = path.join(workspaceRoot, "pocs", key);
+const poc = path.join(root, "pocs", key);
 fs.mkdirSync(path.join(poc, "docs"), { recursive: true });
 fs.mkdirSync(path.join(poc, ".run"), { recursive: true });
-saveState(workspaceRoot, key, { phase: "plan", approved: false });
+saveState(root, key, { phase: "plan", approved: false });
 
 try {
   check("approve: deny developer without stamp", () => {
@@ -121,7 +117,7 @@ try {
     assert(json.permission === "allow", `expected allow, got ${JSON.stringify(json)}`);
   });
 
-  saveState(workspaceRoot, key, { phase: "generate", approved: true });
+  saveState(root, key, { phase: "generate", approved: true });
   fs.writeFileSync(
     path.join(poc, ".run", "approved.json"),
     `${JSON.stringify({ ok: true, at: new Date().toISOString() }, null, 2)}\n`,

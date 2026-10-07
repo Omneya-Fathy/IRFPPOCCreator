@@ -7,7 +7,7 @@ Stop POC app generation until a human approves the TASK PLAN (`/approve` on Jira
 ## Lifecycle
 
 - Events: `subagentStart`, `preToolUse` (Write / StrReplace / EditNotebook)
-- Script: `hooks/approve-before-developer.mjs`
+- Script: `.cursor/hooks/approve-before-developer.mjs`
 - `failClosed`: true
 
 ## Policy
@@ -23,7 +23,7 @@ File **contents** that mention those skill names are not a developer launch.
 
 ## Registered
 
-**No.** Unregistered in `hooks/hooks.json` for now. The script remains; skills still require `/approve` and `mark-approved`.
+**No.** Unregistered in `.cursor/hooks.json` for now. The script remains; skills still require `/approve` and `mark-approved`.
 
 ## Allows
 

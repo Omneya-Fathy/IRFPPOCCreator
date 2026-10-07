@@ -3,7 +3,7 @@
 Blocks App Router POCs saved without Tailwind wired.
 
 - Events: `preToolUse` (Write / StrReplace / EditNotebook), `afterFileEdit`
-- Script: `hooks/poc-tailwind-wired.mjs`
+- Script: `.cursor/hooks/poc-tailwind-wired.mjs`
 - `failClosed`: true
 
 Scans only `pocs/<KEY>/app/layout.tsx` and `pocs/<KEY>/app/globals.css`.

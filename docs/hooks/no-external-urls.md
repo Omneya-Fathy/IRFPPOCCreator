@@ -7,7 +7,7 @@ Keep clickable `http(s)` URLs, remote images, and `next/font/google` out of gene
 ## Lifecycle
 
 - Events: `preToolUse` (Write / StrReplace / EditNotebook), `afterFileEdit`
-- Script: `hooks/no-external-urls.mjs`
+- Script: `.cursor/hooks/no-external-urls.mjs`
 - `failClosed`: true
 
 ## Policy

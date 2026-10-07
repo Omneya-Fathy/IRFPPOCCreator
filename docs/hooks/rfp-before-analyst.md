@@ -7,7 +7,7 @@ Stop the RFP Analyst until a Jira RFP has been fetched for this run.
 ## Lifecycle
 
 - Events: `subagentStart`
-- Script: `hooks/rfp-before-analyst.mjs`
+- Script: `.cursor/hooks/rfp-before-analyst.mjs`
 - `failClosed`: true
 
 ## Policy

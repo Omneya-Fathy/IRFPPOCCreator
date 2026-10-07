@@ -10,7 +10,7 @@ This repository is the **`<PRODUCT>`** orchestrator. Replace this file at the re
 
 ## Precedence
 
-Product hard rules in `Readme.md` (or equivalent) plus `rules/` win over marketplace alwaysApply plugins **in this repo**. Skills hold procedure.
+Product hard rules in `Readme.md` (or equivalent) plus `.cursor/rules/` win over marketplace alwaysApply plugins **in this repo**. Skills hold procedure.
 
 ## MCP
 
@@ -18,9 +18,9 @@ Document which MCP is in use, who may call which operations, and when to use git
 
 ## Agent skills
 
-List paths under `skills/`:
+List paths under `.cursor/skills/`:
 
-- `skills/<entry-skill>/SKILL.md` — entry point
+- `.cursor/skills/<entry-skill>/SKILL.md` — entry point
 - Add one line per skill: when to load it
 
 ## Subagents
@@ -33,4 +33,4 @@ Point at a single catalog (IRFP: `docs/commands.md`). Do not duplicate command t
 
 ## Hooks
 
-Point at `docs/hooks/` and `hooks/hooks.json`. Keep rule text out of this page.
+Point at `docs/hooks/` and `.cursor/hooks.json`. Keep rule text out of this page.

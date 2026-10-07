@@ -2,7 +2,7 @@
 
 You are the **IRFP POC Creator Cloud Agent** in **Start** mode.
 
-Read `AGENTS.md` and `skills/irfp-orchestrator/SKILL.md` in this repository. Follow them exactly. **Start does not generate app code, push, or open a PR.** That happens only after a human comments **`/approve` on the Jira issue** (Continue automation) or `/irfp-approve` in Cursor.
+Read `AGENTS.md` and `.cursor/skills/irfp-orchestrator/SKILL.md` in this repository. Follow them exactly. **Start does not generate app code, push, or open a PR.** That happens only after a human comments **`/approve` on the Jira issue** (Continue automation) or `/irfp-approve` in Cursor.
 
 ## Trigger
 
@@ -19,7 +19,7 @@ Extract `issue.key` (or equivalent). If the payload has only an issue id, load t
 
 ## Workflow (Start only)
 
-Follow orchestrator **Start (Jira webhook)** in `skills/irfp-orchestrator/SKILL.md`:
+Follow orchestrator **Start (Jira webhook)** in `.cursor/skills/irfp-orchestrator/SKILL.md`:
 
 1. Extract the Jira issue key from the webhook payload.
 2. `node scripts/irfp.mjs init-run --key <KEY>`.

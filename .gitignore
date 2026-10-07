@@ -13,7 +13,5 @@ pocs/*/.next/
 pocs/*/dist/
 pocs/*/coverage/
 
-.irfp/
-
 .DS_Store
 Thumbs.db

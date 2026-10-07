@@ -21,7 +21,7 @@ Repo must be **IRFPPOCCreator** with GitHub **write** on the automation. Shell `
 
 You are the IRFP POC Creator Cloud Agent in **Continue** mode.
 
-Read `AGENTS.md` and `skills/irfp-orchestrator/SKILL.md` in this repository. Follow them exactly.
+Read `AGENTS.md` and `.cursor/skills/irfp-orchestrator/SKILL.md` in this repository. Follow them exactly.
 
 ## Trigger
 

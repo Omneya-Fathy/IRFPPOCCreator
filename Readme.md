@@ -8,20 +8,22 @@ The agent must not invent business rules, must not ignore UI specs in the RFP, a
 
 ## What this repo is
 
-This repository is the **IRFP POC Creator Cursor Plugin** (see `.cursor-plugin/plugin.json`). Install it on a **host** git repository; POCs are generated under that host’s `pocs/<JIRA-KEY>/` on branch `poc/<JIRA-KEY>/`. Run `/irfp-setup` or `node scripts/irfp.mjs setup` to record `pluginRoot` and `workspaceRoot` in `.irfp/config.json`.
+This repository is both:
 
-This checkout can act as both plugin source and host (dogfood). Each run produces one demo-quality POC from one RFP. It is not a production system.
+1. The **orchestrator** — agent instructions, skills, subagents, Cursor automations, and hooks.
+2. The **POC drop zone** — generated apps live under `pocs/<JIRA-KEY>/` on branch `poc/<JIRA-KEY>`. Orchestrator files at the repo root stay untouched.
+
+Each run produces one demo-quality POC from one RFP. It is not a production system.
 
 ## Implementation map
 
 | Piece | Location |
 | --- | --- |
-| Plugin manifest | `.cursor-plugin/plugin.json` |
-| Operating rules | `AGENTS.md`, `rules/irfp.mdc` |
-| Skills | `skills/` |
-| Slash commands | `commands/` — catalog `docs/commands.md` |
-| Subagents | `agents/` (`rfp-analyst`, `requirements-planner`, `developer`, `reviewer`, `tester`) |
-| Fail-closed hooks | `hooks/hooks.json`, `hooks/` |
+| Operating rules | `AGENTS.md`, `.cursor/rules/irfp.mdc` |
+| Orchestrator + skills | `.cursor/skills/` |
+| Slash commands | `.cursor/commands/` — catalog `docs/commands.md` |
+| Subagents | `.cursor/agents/` (`rfp-analyst`, `requirements-planner`, `developer`, `reviewer`, `tester`) |
+| Fail-closed hooks | `.cursor/hooks.json`, `.cursor/hooks/` |
 | Run CLI | `node scripts/irfp.mjs` (`help`, `scaffold-poc`, `verify-structure`, …) |
 | Doc templates | `templates/poc-docs/` |
 | Next.js + Vitest + Tailwind scaffold | `templates/poc-next/` (copied by `scaffold-poc`; includes `components/ui`) |
@@ -29,7 +31,7 @@ This checkout can act as both plugin source and host (dogfood). Each run produce
 | Operator setup | `docs/setup.md` |
 | POC drop zone | `pocs/<JIRA-KEY>/` |
 
-Install the plugin on the host, run setup, connect Jira MCP, then create the two Cloud Agent automations on the **host** repo (`docs/setup.md`, `automations/README.md`). Do not trigger on git push.
+Connect Jira MCP, then create the two Cloud Agent automations (`docs/setup.md` and `automations/README.md`). Do not trigger on git push.
 
 ## Locked decisions
 
@@ -137,7 +139,7 @@ sequenceDiagram
 5. **Framework.** If the RFP names a framework, use it. If the RFP is silent, use Next.js (App Router + TypeScript). A human may still override in a Jira comment. Do not switch stacks silently when the RFP is silent.
 6. **Tests are a gate.** Vitest must pass. If tests fail, do not push. Fix or stop and comment the failures on **Jira**.
 7. **No clickable external links.** The POC UI and markdown must not contain `http://` or `https://` hrefs (or equivalent clickable URLs). Local assets, in-app routes, and npm packages are allowed. Do not load fonts, images, or scripts from a CDN URL in the generated UI. `next/font/google` and remote `<img src="https://…">` are forbidden; use local files. Agent Jira comments must not include `http(s)` either.
-8. **Write path only.** All generated code, tests, and POC docs live under `pocs/<JIRA-KEY>/` in the host workspace. Do not modify plugin/orchestrator files (`skills/`, `hooks/`, `scripts/`, `templates/`, automations). If a change is needed outside `pocs/<JIRA-KEY>/`, comment on **Jira** and stop.
+8. **Write path only.** All generated code, tests, and POC docs live under `pocs/<JIRA-KEY>/`. Do not modify orchestrator files at the repo root (`.cursor/`, `Readme.md`, hooks, automations). If a change is needed outside that folder, comment on **Jira** and stop.
 9. **One POC per Jira key.** Use the resolved issue key as the folder name (`pocs/PROJ-123/`) and git branch `poc/PROJ-123`. Do not reuse, rename, or split across sibling folders in the same run.
 10. **Approved tasks only.** Implement exactly what a human approved in the task list—no extra screens, APIs, or libraries. Visual quality of those screens (selected UI design brief + UI direction, responsive layout, loading/empty/error states) is required, not optional polish. **POC visual standard:** approved screens must look **modern** and **demo-impressive within restraint** (domain-specific tokens, first-viewport focal point, obvious primary CTA, signature moment, not a generic any-app dashboard). No extra features. Typographic covers unless the RFP supplies real image files. If new **functional** work is needed, post a revised `TASK PLAN` on Jira and wait; do not ship scope creep.
 11. **No force-push.** Push commits onto `poc/<JIRA-KEY>` (the PR for that key). Never force-push. After Vitest, **`gh pr create` once** if no open PR exists for this key; never open a **second** PR for the same Jira key; never rewrite unrelated PR title/body/commits.
@@ -189,7 +191,7 @@ Skills are capabilities. Subagents own a stage. One subagent must not skip anoth
 
 ### Subagent boundaries
 
-Defined as plugin subagents in `agents/`. The orchestrator launches them with Task; it does not do their jobs itself.
+Defined as Cursor project subagents in `.cursor/agents/`. The orchestrator launches them with Task; it does not do their jobs itself.
 
 1. **RFP Analyst** (`rfp-analyst`) — read-only on the RFP. Output is a brief + UI design brief + gap list.
 2. **Requirements Planner** (`requirements-planner`) — owns questions, technical plan, task list, and the approval gate.
@@ -269,10 +271,9 @@ Apply when the RFP is silent. If the RFP names a different framework or UI kit, 
 ## Repo layout
 
 ```text
-/                                    plugin source (Readme, skills, hooks, scripts, templates)
-/.cursor-plugin/plugin.json          Cursor Plugin manifest
-/skills/ /agents/ /commands/ /hooks/ plugin components
-/commands/                           see `docs/commands.md`
+/                                    orchestrator (Readme, agent config, hooks, automations)
+/.cursor/                            project hooks, skills, agents, slash commands
+/.cursor/commands/                   see `docs/commands.md`
 /pocs/PROJ-123/                      generated app for that Jira key
 /pocs/PROJ-123/docs/rfp-brief.md     extracted capabilities, UI requirements, UI direction, framework, non-goals
 /pocs/PROJ-123/docs/ambiguity-log.md questions + human answers (updated as replies arrive)
