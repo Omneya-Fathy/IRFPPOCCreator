@@ -33,7 +33,12 @@ try {
   const input = await readStdinJson();
   const root = findRepoRoot();
   const keys = listRunKeys(root);
-  const generating = keys.filter((key) => GENERATE_PHASES.has(loadState(root, key)?.phase));
+  const generating = keys.filter((key) => {
+    const state = loadState(root, key);
+    if (!state) return false;
+    if (state.vitestPassed) return false;
+    return GENERATE_PHASES.has(state.phase);
+  });
   if (!generating.length) {
     emit({ permission: "allow" });
     process.exit(0);

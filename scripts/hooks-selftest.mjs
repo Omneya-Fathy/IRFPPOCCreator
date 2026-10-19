@@ -2,7 +2,7 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { findRepoRoot, saveState } from "./irfp-lib.mjs";
+import { durableStatePath, findRepoRoot, localStatePath, saveState } from "./irfp-lib.mjs";
 import { findExternalUrlIssue, findSecretIssue, findTailwindWiringIssue, isDeveloperLaunch } from "./hook-policy.mjs";
 
 const root = findRepoRoot();
@@ -122,6 +122,20 @@ try {
     path.join(poc, ".run", "approved.json"),
     `${JSON.stringify({ ok: true, at: new Date().toISOString() }, null, 2)}\n`,
   );
+
+  check("state: durable run-state.json without .run mirror", () => {
+    assert(fs.existsSync(durableStatePath(root, key)), "expected docs/run-state.json");
+    try {
+      fs.rmSync(localStatePath(root, key), { force: true });
+    } catch {
+      /* ignore */
+    }
+    const { json } = runHook("approve-before-developer.mjs", {
+      subagent_type: "developer",
+      prompt: `You are the Developer. Jira key: ${key}.`,
+    });
+    assert(json.permission === "allow", `expected allow from durable state, got ${JSON.stringify(json)}`);
+  });
 
   check("approve: allow developer after stamp", () => {
     const { json } = runHook("approve-before-developer.mjs", {

@@ -12,9 +12,9 @@ After generate phase, deny writes to orchestrator files. POC work stays under `p
 
 ## Policy
 
-If any run’s phase is in generate/review/test/push, refuse paths that are not under `pocs/<KEY>/` (orchestrator files at repo root, `.cursor/`, `scripts/`, `templates/`).
+If any run’s phase is in generate/review/test/push **and** `vitestPassed` is not true, refuse paths that are not under `pocs/<KEY>/` (orchestrator files at repo root, `.cursor/`, `scripts/`, `templates/`).
 
-If no run is in those phases, allow.
+If no run is in those phases, or every generate-phase run already passed Vitest, allow (orchestrator maintenance after a delivered POC).
 
 ## Blocks
 

@@ -46,6 +46,7 @@ export const REQUIRED_PATHS = [
   "templates/poc-docs/task-plan.md",
   "templates/poc-docs/review-report.md",
   "templates/poc-docs/test-report.md",
+  "templates/poc-docs/run-state.json",
   "templates/poc-next/package.json",
   "templates/poc-next/vitest.config.ts",
   "templates/poc-next/tailwind.config.ts",
@@ -57,7 +58,7 @@ export const REQUIRED_PATHS = [
   "templates/poc-next/lib/theme-wiring.test.ts",
   "templates/poc-next/lib/theme-tokens.ts",
   "automations/start.md",
-  "automations/continue.md",
+  "docs/automation-ready-for-poc.md",
 ];
 
 export function verifyStructure(root) {
