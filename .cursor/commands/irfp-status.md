@@ -1,10 +1,10 @@
 ---
-description: Print IRFP run status (phase, approval, Vitest). Does not generate code.
+description: Print IRFP run status (phase, qaLoopCount, approval, Vitest). Does not generate code.
 ---
 
 You are reporting **IRFP run status**. Read-only.
 
-Read `.cursor/skills/irfp-orchestrator/SKILL.md` only as needed to name the next command. Follow `AGENTS.md`.
+Read-only. Do not load the orchestrator skill unless you cannot name the next command from `status` JSON.
 
 Optional arguments (Jira key):
 $ARGUMENTS
@@ -16,8 +16,8 @@ $ARGUMENTS
 
 ## Do this
 
-1. `node scripts/irfp.mjs status --key <KEY>`. If there is no state, say so and tell the operator to run `/irfp-orchestrator`.
-2. Reply with: key, phase, `approved`, `rfpFetched`, `vitestPassed` (if present), and the **next** command (`/irfp-answer`, `/irfp-feedback`, `/irfp-approve`, or wait).
+1. `node scripts/irfp.mjs status --key <KEY>`. If there is no state, say so and tell the operator to run `/irfp-orchestrator` (or move the Jira issue to **Ready for POC** for Cloud).
+2. Reply with: key, phase, `qaLoopCount`, `humanReviewRequired`, `approved`, `rfpFetched`, `vitestPassed` (if present), durable path `docs/run-state.json`, and the **next** command (`/irfp-answer`, `/irfp-feedback`, `/irfp-approve`, wait for Ready for POC, or human review).
 3. If a GitHub PR exists, mention its number (from `mark-pr-linked` / `gh pr list`). Do not comment unless the operator asks.
 
 ## Forbidden

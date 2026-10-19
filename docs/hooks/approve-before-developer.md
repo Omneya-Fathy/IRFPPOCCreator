@@ -12,7 +12,7 @@ Stop POC app generation until a human approves the TASK PLAN (`/approve` on Jira
 
 ## Policy
 
-Requires `state.json` `approved: true` or `pocs/<JIRA-KEY>/.run/approved.json` with `"ok": true` (written by `node scripts/irfp.mjs mark-approved --key <KEY>`).
+Requires `docs/run-state.json` (or mirrored `.run/state.json`) with `approved: true`, or `pocs/<JIRA-KEY>/.run/approved.json` with `"ok": true` (written by `node scripts/irfp.mjs mark-approved --key <KEY>`).
 
 ## Blocks
 
@@ -23,7 +23,7 @@ File **contents** that mention those skill names are not a developer launch.
 
 ## Registered
 
-**No.** Unregistered in `.cursor/hooks.json` for now. The script remains; skills still require `/approve` and `mark-approved`.
+**Yes.** `.cursor/hooks.json`: `subagentStart` matcher `developer`, and `preToolUse` on Write / StrReplace / EditNotebook. Skills still require `/approve` or `/irfp-approve` plus `mark-approved`.
 
 ## Allows
 

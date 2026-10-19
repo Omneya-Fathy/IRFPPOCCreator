@@ -3,15 +3,23 @@ import fs from "node:fs";
 import path from "node:path";
 import {
   copyDir,
+  copyPocDocTemplates,
   docsDir,
+  durableStatePath,
   findRepoRoot,
   hasAppCode,
+  hasDurableState,
+  inferStateFromPoc,
+  listRunKeys,
+  loadDurableState,
   loadState,
   parseJiraKey,
   pocDir,
+  readJson,
   runDir,
   saveState,
   templatePocNext,
+  templateRunStatePath,
 } from "./irfp-lib.mjs";
 
 const root = findRepoRoot();
@@ -27,7 +35,9 @@ function usage() {
 
 Commands:
   parse-key                 Print first Jira key from --title then --body
-  init-run                  Create pocs/<KEY>/docs and .run state
+  init-run                  Copy templates/poc-docs into pocs/<KEY>/docs/; write run-state.json (first start)
+  ensure-run                If docs/run-state.json exists, print it; else init-run (also copies missing doc templates)
+  bootstrap-state           Operator only. Never Cloud. Does not stamp approved.
   mark-rfp-fetched          Stamp that RFP attachments were downloaded (--files a,b)
   mark-selected-attachment  Record operator override filename (--files a) after listing in state
   scaffold-poc              Copy templates/poc-next into pocs/<KEY>/ (does not overwrite docs)
@@ -35,15 +45,21 @@ Commands:
   mark-approved             Human /approve recorded
   mark-vitest               Stamp Vitest result (--passed true|false)
   mark-pr-linked            Record GitHub PR number after create-once (--number N)
-  status                    Print run state
+  mark-qa-round             Increment qaLoopCount after posting questions (→ In Review)
+  mark-human-review         Stamp max Q&A rounds reached; human review required
+  mark-qa-loop              Set qaLoopCount (--count N); operator reset after review
+  status                    Print run state (docs/run-state.json)
   verify-structure          Check orchestrator files exist
   hooks-selftest            Run deny/allow checks for Q3 policy hooks
   help                      Show this text
 
 Options:
   --key PROJ-123   --title t   --body b   --files a,b   --phase name   --passed true|false
-  --number N   --branch poc/KEY   --cloud-id uuid
+  --number N   --branch poc/KEY   --cloud-id uuid   --count N
   --command "npx vitest run"
+
+Durable state: pocs/<KEY>/docs/run-state.json (commit + push on poc/<KEY>).
+Local mirror + RFP bytes: pocs/<KEY>/.run/ (gitignored except when mirrored for hooks).
 `;
 }
 
@@ -68,6 +84,7 @@ function requireKey() {
 function ensurePocSkeleton(key) {
   fs.mkdirSync(docsDir(root, key), { recursive: true });
   fs.mkdirSync(runDir(root, key), { recursive: true });
+  copyPocDocTemplates(root, key);
   const gitkeep = path.join(docsDir(root, key), ".gitkeep");
   if (!fs.existsSync(gitkeep) && fs.readdirSync(docsDir(root, key)).length === 0) {
     fs.writeFileSync(gitkeep, "");
@@ -90,14 +107,94 @@ switch (cmd) {
   case "init-run": {
     const key = requireKey();
     ensurePocSkeleton(key);
+    const template = readJson(templateRunStatePath(root), null);
     const state = saveState(root, key, {
+      ...(template && typeof template === "object" ? template : {}),
+      key,
       phase: "fetch",
       rfpFetched: false,
       approved: false,
       vitestPassed: false,
+      qaLoopCount: 0,
+      humanReviewRequired: false,
       branch: `poc/${key}`,
     });
     console.log(JSON.stringify(state, null, 2));
+    break;
+  }
+  case "ensure-run": {
+    const key = requireKey();
+    ensurePocSkeleton(key);
+    if (hasDurableState(root, key)) {
+      const state = loadDurableState(root, key);
+      const route = state?.rfpFetched ? "resume" : "start";
+      console.log(
+        JSON.stringify(
+          {
+            ...state,
+            created: false,
+            route,
+            poc: pocDir(root, key),
+            hasAppCode: hasAppCode(root, key),
+            durableState: durableStatePath(root, key),
+          },
+          null,
+          2,
+        ),
+      );
+      break;
+    }
+    const template = readJson(templateRunStatePath(root), null);
+    const created = saveState(root, key, {
+      ...(template && typeof template === "object" ? template : {}),
+      key,
+      phase: "fetch",
+      rfpFetched: false,
+      approved: false,
+      vitestPassed: false,
+      qaLoopCount: 0,
+      humanReviewRequired: false,
+      branch: `poc/${key}`,
+    });
+    console.log(
+      JSON.stringify(
+        {
+          ...created,
+          created: true,
+          route: "start",
+          poc: pocDir(root, key),
+          hasAppCode: hasAppCode(root, key),
+          durableState: durableStatePath(root, key),
+        },
+        null,
+        2,
+      ),
+    );
+    break;
+  }
+  case "bootstrap-state": {
+    const force = args.force === true || String(args.force) === "true";
+    const keys = args.all === true || String(args.all) === "true"
+      ? listRunKeys(root)
+      : [requireKey()];
+    if (!keys.length) fail("No POC folders under pocs/.");
+    const out = [];
+    for (const key of keys) {
+      if (!force && fs.existsSync(durableStatePath(root, key))) {
+        out.push({ key, skipped: true, reason: "run-state.json exists" });
+        continue;
+      }
+      ensurePocSkeleton(key);
+      const inferred = inferStateFromPoc(root, key);
+      const state = saveState(root, key, {
+        ...inferred,
+        branch: `poc/${key}`,
+        qaLoopCount: loadState(root, key)?.qaLoopCount ?? 0,
+        humanReviewRequired: loadState(root, key)?.humanReviewRequired ?? false,
+      });
+      out.push({ key, skipped: false, phase: state.phase, approved: state.approved, vitestPassed: state.vitestPassed });
+    }
+    console.log(JSON.stringify(out, null, 2));
     break;
   }
   case "mark-rfp-fetched": {
@@ -219,12 +316,63 @@ switch (cmd) {
     console.log(JSON.stringify(state, null, 2));
     break;
   }
+  case "mark-qa-round": {
+    const key = requireKey();
+    ensurePocSkeleton(key);
+    const prev = loadState(root, key) || { qaLoopCount: 0 };
+    const current = Number(prev.qaLoopCount || 0);
+    if (current >= 3) {
+      fail("qaLoopCount already at max 3. Use mark-human-review; do not post another Q batch.");
+    }
+    const nextCount = current + 1;
+    const state = saveState(root, key, {
+      qaLoopCount: nextCount,
+      phase: "awaiting-answers",
+      humanReviewRequired: false,
+    });
+    console.log(JSON.stringify(state, null, 2));
+    break;
+  }
+  case "mark-human-review": {
+    const key = requireKey();
+    ensurePocSkeleton(key);
+    const state = saveState(root, key, {
+      humanReviewRequired: true,
+      phase: "human-review",
+    });
+    console.log(JSON.stringify(state, null, 2));
+    break;
+  }
+  case "mark-qa-loop": {
+    const key = requireKey();
+    ensurePocSkeleton(key);
+    if (args.count == null || args.count === true) fail("Pass --count <N> (use 0 to reset after human review).");
+    const count = Number(args.count);
+    if (!Number.isInteger(count) || count < 0) fail("Pass --count with a non-negative integer.");
+    const prev = loadState(root, key);
+    const patch = { qaLoopCount: count };
+    if (count === 0) {
+      patch.humanReviewRequired = false;
+      patch.phase = prev?.rfpFetched ? "analyze" : "fetch";
+    }
+    console.log(JSON.stringify(saveState(root, key, patch), null, 2));
+    break;
+  }
   case "status": {
     const key = requireKey();
     const state = loadState(root, key);
     if (!state) fail(`No run state for ${key}.`);
     console.log(
-      JSON.stringify({ ...state, poc: pocDir(root, key), hasAppCode: hasAppCode(root, key) }, null, 2),
+      JSON.stringify(
+        {
+          ...state,
+          poc: pocDir(root, key),
+          hasAppCode: hasAppCode(root, key),
+          durableState: path.join(docsDir(root, key), "run-state.json"),
+        },
+        null,
+        2,
+      ),
     );
     break;
   }

@@ -12,11 +12,11 @@ For IRFP runs in this repo, **IRFP hard rules** in `Readme.md` and `.cursor/rule
 
 ## MCP
 
-Use **Jira MCP** to read the issue, download the RFP attachment, and **comment on the issue** (`addOrEditJiraIssueComment`). Use `gh` and git for the GitHub branch and one PR after Vitest. Never invent an RFP. Details: `docs/mcp.md`.
+Use **Jira MCP** to read the issue, download the RFP attachment, **comment on the issue** (`addOrEditJiraIssueComment`), and **transition to In Review** only. Use `gh` / git / Open Pull Request for the GitHub branch and one PR after Vitest. Never invent an RFP. Details: `docs/mcp.md`.
 
 ## Agent skills
 
-- `.cursor/skills/irfp-orchestrator/SKILL.md` — entry point for start/continue
+- `.cursor/skills/irfp-orchestrator/SKILL.md` — entry point for Ready for POC / Desktop slash commands
 - `.cursor/skills/analyze-rfp/SKILL.md` — RFP Analyst (brief + `docs/ui-design-brief.md`)
 - `.cursor/skills/generate-tasks/SKILL.md` — Requirements Planner
 - `.cursor/skills/frontend-development/SKILL.md` — Developer demo UI from approved tasks + selected UI design brief + brief UI requirements (scaffold tokens/`components/ui`, not a greenfield Tailwind install). First-glance appeal, domain retokenize, and concept propagation required; no extra screens.
@@ -46,9 +46,9 @@ Catalog (arguments, defaults, safety notes): `docs/commands.md`. Files in `.curs
 
 1. Follow the 15 hard rules in `Readme.md`. They are stop conditions.
 2. Write application code and POC docs only under `pocs/<JIRA-KEY>/`.
-3. Canonical artifacts: `pocs/<JIRA-KEY>/docs/*.md` (templates in `templates/poc-docs/`).
-4. Gate stamps: `node scripts/irfp.mjs` (see `--help` via default usage string).
-5. Gates: Jira comments `Q1`/`A1`, `TASK PLAN`, `/approve`, `/revise`, **or** the matching Cursor commands. Any human on the issue (or the human who ran the command) may approve; ignore the automation account.
+3. Canonical artifacts: `pocs/<JIRA-KEY>/docs/*` including durable `run-state.json` (templates in `templates/poc-docs/`).
+4. Gate stamps: `node scripts/irfp.mjs` (see `--help` via default usage string). On each Ready for POC wake: `ensure-run` (start if no `docs/run-state.json`, else resume). Commit/push `docs/run-state.json` on `poc/<KEY>` after each Q&A round.
+5. Gates: Jira status **Ready for POC** wakes Cloud; after questions the agent transitions to **In Review** and stops. PO answers and moves back to Ready for POC to run again. Comments `Q1`/`A1`, `TASK PLAN`, `/approve`, `/revise`, **or** the matching Cursor commands. Any human on the issue (or the human who ran the command) may approve; ignore the automation account. Max **3** question rounds (`qaLoopCount`).
 6. Never force-push. Never open a second PR for the same Jira key. Never commit secrets or RFP binaries.
 7. Default stack when the RFP is silent: Next.js App Router + TypeScript, full-stack, local/fake data, Vitest.
 
@@ -64,4 +64,4 @@ Project hooks in `.cursor/hooks.json` fail closed. One-pagers: `docs/hooks/`.
 - Root `pocs/<JIRA-KEY>/app/layout.tsx` must keep `import "./globals.css"`; `app/globals.css` must keep `@tailwind` layers (`poc-tailwind-wired` hook)
 - POC files cannot contain secret patterns (keys, tokens, private keys); values are not echoed
 
-`approve-before-developer` is **unregistered** in `hooks.json` for now. `/approve` / `/irfp-approve` and `mark-approved` remain required by skills and the orchestrator. Script still at `.cursor/hooks/approve-before-developer.mjs`.
+`approve-before-developer` is registered in `hooks.json` (`subagentStart` matcher `developer`, and `preToolUse` on writes). `/approve` / `/irfp-approve` and `mark-approved` remain required by skills and the orchestrator. Script: `.cursor/hooks/approve-before-developer.mjs`.

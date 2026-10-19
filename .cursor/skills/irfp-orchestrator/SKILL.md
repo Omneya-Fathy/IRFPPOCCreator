@@ -1,22 +1,23 @@
 ---
 name: irfp-orchestrator
-description: Routes IRFP POC Creator runs from a Jira issue (RFP attachment + comments) through analyze, Q&A, /approve, generate, review, Vitest, and a GitHub PR for code. Use when a Jira webhook fires (Ready + RFP, or a comment), a Cursor slash command `/irfp-orchestrator` `/irfp-answer` `/irfp-feedback` `/irfp-approve` `/irfp-status` is used, a Jira key is present, or the user says start/continue the RFP POC pipeline.
+description: Routes IRFP POC Creator runs from a Jira issue (Ready for POC status + RFP attachment) through analyze, status-loop Q&A (max 3), /approve, generate, review, Vitest, and a GitHub PR. Use when a Jira webhook fires (status Ready for POC), a Cursor slash command `/irfp-orchestrator` `/irfp-answer` `/irfp-feedback` `/irfp-approve` `/irfp-status` is used, a Jira key is present, or the user says start/continue the RFP POC pipeline.
 ---
 
 # IRFP orchestrator
 
-Read `Readme.md` and `AGENTS.md` first. You are the only entry point. Do not skip gates.
+You are the only entry point. Hard rules and `AGENTS.md` are already in context — **do not re-read `Readme.md`**. Load this skill and `pocs/<KEY>/docs/` only. Do not skip gates.
 
 Pipeline for visual work:
 
 ```text
 RFP → requirements analysis → UI/product ideation → docs/ui-design-brief.md
-  → technical/task planning → human approval → frontend implementation → design-aware review
+  → Q&A status loop (Ready for POC ↔ In Review, max 3) → /approve
+  → frontend implementation → design-aware review → Vitest → PR
 ```
 
 The Developer consumes the selected design brief. They do not invent the design while coding.
 
-Gates live on **Jira issue comments**. GitHub is for **code delivery** only (one PR per Jira key after green Vitest).
+**Cloud wake signal:** Jira status **Ready for POC**. Gates and answers live in **Jira issue comments**. Durable pipeline state is **`pocs/<KEY>/docs/run-state.json`** (commit + push on `poc/<KEY>`). GitHub is for **code delivery** only (one PR per Jira key after green Vitest).
 
 ## How to comment on Jira
 
@@ -24,70 +25,95 @@ Use Atlassian MCP `addOrEditJiraIssueComment`:
 
 1. `getAccessibleAtlassianResources` once per session; cache **`cloudId`**. After `gh pr create`, run `node scripts/irfp.mjs mark-pr-linked --key <KEY> --number <N> [--branch poc/<KEY>] [--cloud-id <uuid>]`.
 2. Call `addOrEditJiraIssueComment` with `cloudId`, `issueIdOrKey` = `<KEY>`, markdown `commentBody`.
-3. Prefix every agent post with `**[IRFP POC Creator]**` so Continue can ignore it.
+3. Prefix every agent post with `**[IRFP POC Creator]**` so human-thread filters can ignore it.
 4. Do **not** put `http://` or `https://` in comment bodies. For a GitHub PR, write plain text such as `GitHub PR #N on branch poc/KEY` (no clickable URL).
 5. Do not invent an RFP if MCP fails. If you cannot comment (MCP down), stop; do not paste a substitute RFP.
 
-`atlassianUserInfo` once per Continue run: ignore comments whose author `accountId` matches the connected user.
+`atlassianUserInfo` once per run when filtering comment authors: ignore comments whose author `accountId` matches the connected user.
+
+## Durable state (Cloud loops)
+
+- Canonical: `pocs/<KEY>/docs/run-state.json` via `node scripts/irfp.mjs` (`status`, `mark-*`). Also mirrored to gitignored `pocs/<KEY>/.run/state.json` for hooks.
+- RFP bytes: `pocs/<KEY>/.run/rfp/` (gitignored) — re-download from Jira each Cloud run if missing.
+- **Before stopping** a Q&A round (or after any `mark-*` that must survive the next clone): commit `pocs/<KEY>/docs/` (including `run-state.json`) on `poc/<KEY>` and **`git push`**. Docs-only commits are allowed before Vitest.
+
+Fields used for the status loop: `qaLoopCount` (0–3), `humanReviewRequired`, `rfpFetched`, `approved`, `vitestPassed`, `phase`.
+
+## Transition to In Review
+
+After posting questions or the max-loop stop comment (not after `/approve` generate):
+
+1. Discover Atlassian op `listJiraIssueTransitions` if it is not a primary tool; run it with `executeRead` (`cloudId` top-level).
+2. Pick the transition whose **destination status** name matches **In Review** (case-insensitive). Do not match on transition name alone if it differs from the status.
+3. `transitionJiraIssue` with that `transitionId`.
+4. Never transition **to** Ready for POC (the PO owns that — that is how the Cloud Agent runs again). Never transition to other statuses.
+
+The Cloud Agent **wakes only** when status becomes **Ready for POC**. After agent comments, move to **In Review** and **stop** so the next wake is a new run when the PO returns the issue to Ready for POC.
 
 ## Modes
 
-### Start (Jira webhook — primary)
+### Ready for POC (Jira webhook — primary)
 
-Trigger: Jira webhook (User Story **created** and/or status **Ready** with RFP attachment—match your automation). Do not wait for a GitHub PR.
+Trigger: Jira webhook when status becomes **Ready for POC** (operator Jira Automation → Cursor). This is the **only** Cloud wake. Do not wait for a GitHub PR. Do not use a comment-created webhook as the primary Cloud trigger.
 
-1. Resolve **`issueKey`** from the webhook payload (`issue.key` or equivalent). If only an issue id is present, load the issue with Jira MCP (`getJiraIssue`) and take the key. If the payload has neither, stop (cannot comment without a key).
-2. `node scripts/irfp.mjs init-run --key <KEY>` (creates `pocs/<KEY>/`, sets default branch `poc/<KEY>`).
-3. **Branch:** `git fetch` then checkout or create `poc/<KEY>`. All docs commits go on this branch. No PR is required yet.
-4. Jira MCP: cache `cloudId`; load the issue; list attachments.
-5. **RFP selection (no human pick):** Build candidates: attachments whose filename contains `RFP` (case-insensitive). If that set is empty, use **all** issue attachments. If zero attachments, comment and stop. If one candidate, use it. If **multiple**, auto-select the **latest** by Jira attachment **created** time (newest upload wins). Do **not** comment a file list and wait; do **not** require Continue or `mark-selected-attachment` for the default path. Tie-break when created times are equal or missing: prefer `.html` / `.htm`, then `.docx`, then others. After choosing, you may note on Jira which filename was used (prefix `**[IRFP POC Creator]**`); do not block the pipeline for confirmation.
-6. Download the chosen RFP into `pocs/<KEY>/.run/rfp/` (gitignored). Do not commit the binary.
-7. `node scripts/irfp.mjs mark-rfp-fetched --key <KEY> --files <names>`
-8. Launch the **rfp-analyst** subagent (`subagent_type: rfp-analyst`). Prompt must include `You are the RFP Analyst.` so the RFP hook matches. Do not write app code. Analyst owns capabilities, UI requirements, UI direction in `docs/rfp-brief.md`, and the canonical concept in `docs/ui-design-brief.md` (three directions, selected scores, signature moment).
-9. Launch the **requirements-planner** subagent for questions + draft plan docs. Planner copies UI direction and the **selected UI design contract** into `technical-plan.md`; it does not restyle or pick a fourth direction. If UI direction or the design brief is insufficient, Planner expands them in the docs before `TASK PLAN`. Analyst and Planner own the minimum UI direction fields (Tone, Density, Context, Notes ≥ two lines, Demo quality) **and** a complete design brief.
-10. Post `Q1`… and `TASK PLAN` on the **Jira issue** only (not a GitHub PR). Commit only `pocs/<KEY>/docs/` if you must persist files. Docs-only commits are allowed before Vitest. No app source.
+Every wake (first time **and** after the PO moves the issue back to Ready for POC):
 
-### Continue (Jira comment webhook)
+1. Resolve **`issueKey`** from the webhook payload (`issue.key` or equivalent). If only an issue id is present, load the issue with Jira MCP (`getJiraIssue`) and take the key. If the payload has neither, stop.
+2. Cache `cloudId`; `getJiraIssue` — confirm current status is **Ready for POC** (case-insensitive match on status name). If not, comment (if possible) and stop.
+3. `git fetch`; checkout or create branch **`poc/<KEY>`**; `git pull` when the remote branch exists (this is how **`docs/run-state.json`** from the last run appears).
+4. `node scripts/irfp.mjs ensure-run --key <KEY>` — uses **only** committed `pocs/<KEY>/docs/run-state.json`. Copies `templates/poc-docs/` into `pocs/<KEY>/docs/` (skip existing). Do **not** use `bootstrap-state`. Do **not** treat gitignored `.run/state.json` as enough to resume.
+5. Route from `ensure-run` JSON:
+   - **`route` is `start`** (`created: true`, or `rfpFetched` false / no durable file) → **First fetch**.
+   - **`route` is `resume`** (`rfpFetched` true on durable state) → **Resume**.
 
-Identity gate on the **webhook comment** (do this first, every time):
+#### First fetch
 
-1. Read **`issue.key`**, comment **author `accountId`**, and **body** from the webhook payload. If `issue.key` is missing, stop. If comment body or author is missing, use **Load comments** (below) and treat the **newest human** comment as the trigger; if none, stop.
-2. Call **`atlassianUserInfo`**. If the **webhook** commenter `accountId` equals the connected user → **ignore** (no files, no replies; loop guard).
-3. If the **webhook** body starts with `**[IRFP POC Creator]**` → **ignore**.
-4. Any other human **webhook** commenter may proceed.
+1. Jira MCP: list attachments.
+2. **RFP selection (no human pick):** candidates = filenames containing `RFP` (case-insensitive); else all attachments. If zero, comment and stop. If multiple, newest by attachment **created** time. Tie-break: prefer `.html` / `.htm`, then `.docx`, then others. Download into `pocs/<KEY>/.run/rfp/` (gitignored). Do not commit the binary.
+3. `node scripts/irfp.mjs mark-rfp-fetched --key <KEY> --files <names>`
+4. Launch **rfp-analyst** (`subagent_type: rfp-analyst`, prompt includes `You are the RFP Analyst.`).
+5. Launch **requirements-planner** for questions + draft plan docs.
+6. Post `Q1`… and `TASK PLAN` on the **Jira issue** (prefix `**[IRFP POC Creator]**`). Match `pocs/<KEY>/docs/task-plan.md`.
+7. `node scripts/irfp.mjs mark-qa-round --key <KEY>`
+8. Commit `pocs/<KEY>/docs/` (including `run-state.json`); `git push -u origin poc/<KEY>` (or push existing).
+9. Transition issue to **In Review**; **stop**. No app code, no `/approve` on first fetch.
 
-**Load comments (required after the gate passes):**
+#### Resume (after PO answers and returns to Ready for POC)
 
-1. Call **`listJiraIssueComments`** with `cloudId`, `issueIdOrKey`, `orderBy`: `created`, `maxResults`: 100. Paginate with `startAt` until `isLast` is true (do not rely on `getJiraIssue` alone — it embeds at most ~20 comments).
-2. Build the **human thread**: drop comments whose author `accountId` is the connected MCP user and drop bodies starting with `**[IRFP POC Creator]**`.
-3. Reconcile **`A1`…** answers from **all** human comments into `docs/ambiguity-log.md` (not only the webhook body). Use **`pocs/<KEY>/docs/ambiguity-log.md`** as source of truth; do not duplicate lines already logged.
-4. **Commands:** if the **newest** human comment is `/revise`, run revise flow. If the **newest** human comment is `/approve` (and blocking questions are answered per the log), run approve flow. If the newest comment is an answer, run planner. Older `/approve` without a newer human `/revise` does not apply if a later human comment superseded it — prefer **newest** human comment for the command; still merge **all** `A1`… text from the full thread.
+1. If `pocs/<KEY>/.run/rfp/` is empty, re-download the selected/latest RFP attachment (same selection rules; prefer `state.selectedAttachments` / `state.attachments` names when still on the issue).
+2. **Load comments:** Discover `listJiraIssueComments` if it is not a primary tool; call `executeRead` with `cloudId` top-level, `orderBy`: `created`, `maxResults`: 100; paginate with `startAt` until `isLast`. Build the **human thread**: drop connected MCP user and bodies starting with `**[IRFP POC Creator]**`.
+3. Reconcile **`A1`…** from **all** human comments into `docs/ambiguity-log.md` (source of truth; do not duplicate lines).
+4. **Commands** from the **newest** human comment: `/revise` → revise flow; `/approve` → approve flow if blocking questions are answered; answers → planner. Prefer newest human comment for the command; still merge all `A1`… from the full thread.
+5. **Optional attachment override:** if a human names a specific filename to re-fetch, `mark-selected-attachment`, download, re-run analyst only when needed.
+6. Launch **requirements-planner** for answers / `/revise` as needed. Docs-only commits allowed.
+7. **After planner / answer processing:**
+   - If newest human command is **`/approve`** and blocking Qs are answered → `node scripts/irfp.mjs mark-approved --key <KEY>`; commit/push `docs/run-state.json`; then **Generate after `/approve`**. Do **not** transition to In Review.
+   - Else if **blocking questions remain**:
+     - If `qaLoopCount >= 3` (read from `status`): post the **max-loop stop comment** (below); `node scripts/irfp.mjs mark-human-review --key <KEY>`; commit/push docs; transition to **In Review** if not already; **stop**. Do **not** post a new Q batch.
+     - Else: post next `Q…` (+ updated TASK PLAN if needed); `node scripts/irfp.mjs mark-qa-round --key <KEY>`; commit/push docs; transition to **In Review**; **stop**.
+   - Else (no blocking Qs, no `/approve`): post/refresh TASK PLAN; comment that the PO may comment **`/approve`** or add answers, then move status to **Ready for POC** when they want the agent again; commit/push; transition to **In Review**; **stop** (do not generate).
 
-Then:
+**Max-loop stop comment** (prefix `**[IRFP POC Creator]**`, no `http(s)`):
 
-1. **Optional attachment override:** If a human comment names a **specific filename** and fetch/analysis has not completed (or they ask to re-run on a different file), run `mark-selected-attachment`, download that file, then `rfp-analyst` if analysis has not run. Otherwise do not stop Start for multiple attachments.
-2. `A1` / threaded answers: launch **requirements-planner** to update `docs/ambiguity-log.md` and plan files; comment remaining gaps on Jira. Docs-only git commits are allowed.
-3. `/revise` from a human: launch **requirements-planner**; do not generate.
-4. `/approve` from a human: `node scripts/irfp.mjs mark-approved --key <KEY>` then generate → review → Vitest → push / create PR.
-5. Any other text: if it answers a question, treat as an answer. Otherwise comment on Jira that you need `/approve` or `/revise`.
+> Agent stopped: reached the maximum of 3 question round-trips. Human review required. Reply with answers and/or `/approve` / `/revise` after review; move status to Ready for POC only when you want the agent to run again (operator may reset `qaLoopCount` via `node scripts/irfp.mjs mark-qa-loop --key <KEY> --count 0` if a new loop is intentional).
 
-### Legacy Start (PR opened)
+### Desktop / slash-command entry
 
-Optional for local/`gh`-driven runs. Extract the first Jira key from PR title then body. If `isDraft` is true, stop with no comment. Then follow **Start (Jira webhook)** from `init-run` onward. **Always comment on Jira** when `issueKey` is known — do not dual-post to the PR.
+When invoked via `/irfp-orchestrator` (or chat) without a Ready for POC webhook: resolve the Jira key (arguments, branch `poc/KEY`, newest `pocs/` folder). Follow **First fetch** or **Resume** using `ensure-run` the same way. Prefer mirroring Q1 / TASK PLAN / stops to Jira when MCP is available. Chat may supply answers via `/irfp-answer`; approval via `/irfp-approve` (equivalent to Jira `/approve`).
 
 ## Generate after `/approve`
 
 1. **developer** subagent — first `node scripts/irfp.mjs scaffold-poc --key <KEY>` (Next.js + Vitest + Tailwind + `components/ui`; skips existing docs). Retokenize `globals.css` + `theme-tokens.ts` from the selected **UI design brief** and get `theme-wiring.test.ts` green **before** routes. Then implement the approved plan (UI/server under `pocs/<KEY>/`). Do not invent a new concept while coding. Developer must not re-analyze the RFP.
 2. **reviewer** subagent — fail closed on any hard-rule miss, including retokenized-scaffold UI (tokens without shell/type/signature weight) and red/missing `theme-wiring.test.ts`. May commit `docs/review-report.md` only (docs-only commit allowed without Vitest). Comment a short pass/fail on **Jira**.
 3. **tester** subagent — Vitest in the POC directory. Stamp `mark-vitest` **before** committing app files or pushing.
-4. `node scripts/irfp.mjs mark-vitest --key <KEY> --passed true` only after a green run.
+4. `node scripts/irfp.mjs mark-vitest --key <KEY> --passed true` only after a green run. Commit/push `docs/run-state.json` with other docs.
 5. Commit `pocs/<KEY>/` (app + docs) on branch `poc/<KEY>` (or `state.branch`). Never `--force`.
-6. **PR create-once:** `gh pr list --search "<KEY>" --json number,headRefName` (and/or head `poc/<KEY>`). If **no open PR** for this key: `git push -u origin poc/<KEY>`, then **`gh pr create`** once (title/body include `<KEY>`). `node scripts/irfp.mjs mark-pr-linked --key <KEY> --number <N> --branch poc/<KEY>`. If a PR already exists: push to **that** branch only. Never open a **second** PR for the same Jira key.
+6. **PR create-once:** Prefer Cursor **Open Pull Request** when enabled on the Cloud automation; else `gh pr list` / `git push` / `gh pr create` once. Title/body include `<KEY>`. `node scripts/irfp.mjs mark-pr-linked --key <KEY> --number <N> --branch poc/<KEY>`. Never open a **second** PR for the same Jira key. See `docs/automation-ready-for-poc.md` for delivery details.
 7. Post a short **Jira** summary (review/test/push outcome, `GitHub PR #N on branch poc/KEY`). No clickable `http(s)`.
 
 ## Subagents
 
-Launch these with the Task tool (`subagent_type` = file `name`). Put the role line in the prompt so hooks can match. Do not flatten a stage into the orchestrator.
+Launch these with the Task tool (`subagent_type` = file `name`). Put the role line in the prompt so hooks can match. Do not flatten a stage into the orchestrator. Subagent prompt: role stem, Jira key, **follow that stage’s skill only**, work under `pocs/<KEY>/`. Do **not** tell subagents to read `Readme.md`.
 
 | Stage | Subagent | Skill it follows |
 | --- | --- | --- |
@@ -109,5 +135,5 @@ One stage at a time. Do not start Developer until `/approve`. Do not start Teste
 
 ## Stop conditions
 
-- Missing key, missing RFP, unanswered Qs, no `/approve`, review fail, Vitest fail → comment on **Jira** and stop.
+- Missing key, wrong status, missing RFP, unanswered Qs, no `/approve`, `qaLoopCount >= 3` with more questions, review fail, Vitest fail → comment on **Jira** and stop.
 - New business-rule gap during coding → comment on **Jira**; do not invent.

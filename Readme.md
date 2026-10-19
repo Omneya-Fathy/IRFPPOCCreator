@@ -2,7 +2,7 @@
 
 ## Goal
 
-When a **Jira user story** is **Ready** and has an **RFP** attachment, a **Cursor Cloud Agent** fetches that file, resolves gaps with **humans in Jira comments**, generates a POC under `pocs/<JIRA-KEY>/`, runs **Vitest**, then **pushes branch `poc/<JIRA-KEY>/` and opens one GitHub PR**.
+When a **Jira user story** moves to **Ready for POC** and has an **RFP** attachment, a **Cursor Cloud Agent** fetches that file, resolves gaps with **humans in Jira comments** (status ping-pong with **In Review**, max 3 question rounds), generates a POC under `pocs/<JIRA-KEY>/` after `/approve`, runs **Vitest**, then **pushes branch `poc/<JIRA-KEY>/` and opens one GitHub PR**.
 
 The agent must not invent business rules, must not ignore UI specs in the RFP, and must not push code when tests fail.
 
@@ -27,25 +27,29 @@ Each run produces one demo-quality POC from one RFP. It is not a production syst
 | Run CLI | `node scripts/irfp.mjs` (`help`, `scaffold-poc`, `verify-structure`, …) |
 | Doc templates | `templates/poc-docs/` |
 | Next.js + Vitest + Tailwind scaffold | `templates/poc-next/` (copied by `scaffold-poc`; includes `components/ui`) |
-| Cloud Agent prompts | `automations/start.md`, `automations/continue.md` |
+| Cloud Agent prompt | `automations/start.md` (Ready for POC) |
 | Operator setup | `docs/setup.md` |
+| Durable run state | `pocs/<JIRA-KEY>/docs/run-state.json` (commit on `poc/<KEY>`) |
 | POC drop zone | `pocs/<JIRA-KEY>/` |
 
-Connect Jira MCP, then create the two Cloud Agent automations (`docs/setup.md` and `automations/README.md`). Do not trigger on git push.
+Connect Jira MCP, then create **one** Cloud Agent automation (`docs/setup.md` and `automations/README.md`). Do not trigger on git push or on every comment.
 
 ## Locked decisions
 
 | Topic | Decision |
 | --- | --- |
 | Conversation host | **Jira issue comments** (Q1, TASK PLAN, `/approve`, `/revise`) |
+| Cloud wake signal | Status **Ready for POC** (single Cursor automation webhook) |
+| Waiting for PO | Agent transitions to **In Review** after questions (max 3 Q&A rounds) |
 | Git host | GitHub Pull Request for **code only** (create once after green Vitest) |
-| Which stories start a run | Status **Ready** plus an attachment whose name matches **RFP** |
-| Jira key | `issue.key` from the Start webhook (or first `PROJECT-123` in a legacy PR title/body) |
+| Which stories start a run | Status **Ready for POC** plus an attachment whose name matches **RFP** |
+| Jira key | `issue.key` from the Ready for POC webhook (or first `PROJECT-123` in a legacy PR title/body) |
 | RFP source | File attached to that Jira issue |
-| How a run starts | Cursor Cloud Agent on the Jira Ready webhook |
-| Ambiguity + task approval | Comments on the **Jira issue** |
+| How a run starts | Cursor Cloud Agent on the Jira **Ready for POC** webhook |
+| Ambiguity + task approval | Comments on the **Jira issue**; generation still needs `/approve` |
 | Who may answer / approve | **Any human** on the issue except the connected automation account |
 | Where code goes | Branch `poc/<JIRA-KEY>`, folder `pocs/<JIRA-KEY>/`, one PR per key |
+| Durable pipeline state | `pocs/<JIRA-KEY>/docs/run-state.json` (committed on `poc/<KEY>`; `.run/rfp/` gitignored) |
 | Default stack | Next.js App Router + TypeScript, demo UI, static/in-memory fake data |
 | If the RFP names another framework | **RFP wins.** Rule 5 (Next.js) applies only when the RFP is silent |
 | POC depth | Demo-quality UI with minimal fake data; server code only when the approved plan requires it (unless the RFP named another framework) |
@@ -56,46 +60,40 @@ Connect Jira MCP, then create the two Cloud Agent automations (`docs/setup.md` a
 
 ## Trigger contract
 
-A start run is valid only when all of the following are true:
+A Cloud run is valid only when all of the following are true:
 
-1. The Jira user story is **Ready**.
-2. The issue has at least one attachment whose name matches **RFP**.
+1. The Jira user story status is **Ready for POC**.
+2. The issue has at least one attachment whose name matches **RFP** (first fetch; resume may re-use prior fetch stamps).
 3. The webhook (or chat) supplies the issue key (`PROJ-123`).
-4. The **Start** Cloud Agent runs.
+4. The **Ready for POC** Cloud Agent runs.
 
 If any of those fail, the agent comments on the **Jira issue** with what is missing and **stops**. It does not generate code.
 
-### Two Cloud Agent moments (keep them separate)
+### One Cloud Agent moment (status loop)
 
-Mixing these events causes loops: the agent’s own Jira comments would restart Continue; a git push must not restart Start.
+Do **not** use a comment-created webhook as the primary trigger (agent Q1 comments would loop). A git push must not start a run.
 
 | Moment | Event | What the agent may do | What it must not do |
 | --- | --- | --- | --- |
-| **Start** | Jira webhook: Ready + RFP attachment | Read issue key, fetch RFP via Jira MCP, analyze, post questions and a draft task plan as **Jira comments** | Generate app code, open a PR, treat as `/approve` |
-| **Continue** | Jira webhook: comment added | If the comment is from a **human** (not the automation account / not `**[IRFP POC Creator]**`): record answers, revise the plan, or start generation after `/approve` | Treat the agent’s own comments as approval |
+| **Ready for POC** (first) | Status → Ready for POC + RFP | Fetch RFP, analyze, post Q1 / TASK PLAN, `mark-qa-round`, push `run-state.json`, transition to **In Review** | Generate app code, treat as `/approve`, transition to Ready for POC |
+| **Ready for POC** (resume) | PO answered and status → Ready for POC again | Merge answers, more Qs (if `qaLoopCount < 3`) or `/approve` → generate | Ignore max-loop cap; invent business rules |
+| **Max Q rounds** | `qaLoopCount >= 3` and more questions needed | Stop comment, `mark-human-review`, leave **In Review** | Post another Q batch |
 
-**Loop guard:** ignore the connected Atlassian `accountId` and bodies prefixed `**[IRFP POC Creator]**`. A push from the agent must not start a new analysis. Code generation runs only after a human approves the task list in a Jira comment (or `/irfp-approve`).
+**Loop guard:** when building the human comment thread, ignore the connected Atlassian `accountId` and bodies prefixed `**[IRFP POC Creator]**`. Code generation runs only after a human approves the task list in a Jira comment (or `/irfp-approve`).
 
 ## End-to-end flow
 
 ```text
-Jira story Ready + RFP attachment
-  → Cloud Agent (start)
-  → Resolve issue key from webhook
-  → Branch poc/<JIRA-KEY>
-  → Hook: RFP attachment exists?
-  → Fetch attachment via Jira MCP
-  → RFP Analyst: brief + UI design brief + gaps → write docs/rfp-brief.md and docs/ui-design-brief.md
-  → Requirements Planner: questions as Jira comments
-  → Human replies on Jira → update docs/ambiguity-log.md
-  → Planner posts the task list → write docs/technical-plan.md (UI design contract) + docs/task-plan.md
-  → Human comments /approve on Jira
-  → Developer: app in pocs/<JIRA-KEY>/ (implements selected design brief; no extra screens)
-       stack = RFP framework if named, else Next.js demo UI + fake data
-  → Reviewer: diff vs RFP + design brief + hard rules
-  → Tester: Vitest
-  → Hook: tests pass?
-  → Push poc/<JIRA-KEY>; gh pr create once if no open PR for this key
+Jira story → Ready for POC + RFP attachment
+  → Cloud Agent
+  → Branch poc/<JIRA-KEY>; docs/run-state.json
+  → Fetch RFP via Jira MCP; mark-rfp-fetched
+  → RFP Analyst + Requirements Planner
+  → Post Q1 / TASK PLAN; mark-qa-round; push docs; status → In Review
+  → PO answers in comments; status → Ready for POC (repeat ≤ 3 Q rounds)
+  → Human comments /approve on Jira (while Ready for POC wakes the agent)
+  → Developer → Reviewer → Tester (Vitest)
+  → Push poc/<JIRA-KEY>; one GitHub PR
   → Jira summary: GitHub PR #N on branch poc/KEY
 ```
 
@@ -103,18 +101,18 @@ Jira story Ready + RFP attachment
 sequenceDiagram
   participant Human as Human_on_Jira
   participant Jira as Jira_issue
-  participant Start as CloudAgent_Start
-  participant Cont as CloudAgent_Continue
+  participant Agent as CloudAgent_ReadyForPOC
   participant GH as GitHub
 
-  Human->>Jira: Ready_plus_RFP_attachment
-  Jira->>Start: webhook
-  Start->>Jira: Q1_and_TASK_PLAN
-  Human->>Jira: A1_or_approve
-  Jira->>Cont: comment_webhook
-  Cont->>Jira: plan_or_status
-  Cont->>GH: push_then_pr_create_once
-  Cont->>Jira: PR_number_plain_text
+  Human->>Jira: ReadyForPOC_plus_RFP
+  Jira->>Agent: webhook
+  Agent->>Jira: Q1_TASK_PLAN_then_InReview
+  Human->>Jira: A1_then_ReadyForPOC
+  Jira->>Agent: webhook
+  Human->>Jira: approve_on_ReadyForPOC
+  Jira->>Agent: webhook
+  Agent->>GH: push_then_pr_create_once
+  Agent->>Jira: PR_number_plain_text
 ```
 
 ## Actors
@@ -154,7 +152,7 @@ Each step has a required input, an owner, an output, and a gate. A failed gate s
 
 | # | Step | Owner | Input | Output | Gate |
 | --- | --- | --- | --- | --- | --- |
-| 0 | Pre-check | Hook + Start agent | Jira webhook | Issue key; issue reachable | Missing key → stop and comment. |
+| 0 | Pre-check | Orchestrator (Ready for POC Cloud Agent) | Jira webhook | Issue key; issue reachable | Missing key → stop and comment. |
 | 1 | Fetch RFP | Orchestrator + Jira MCP | Jira issue | RFP attachment bytes + story fields | **Hook: RFP attachment exists before analyst.** Zero attachments → stop. Multiple candidates → **latest upload** (no human pick). |
 | 2 | Analyze RFP | RFP Analyst | RFP file(s) | `docs/rfp-brief.md` + `docs/ui-design-brief.md` + Jira summary comment | Brief covers description, capabilities, UI requirements (explicit vs derived), and UI direction. Design brief has three distinct directions, a selected concept, and a signature moment. Blocking gaps are business rules/conflicts only — missing branding is filled as inferred direction + design brief. Files committed under `pocs/<JIRA-KEY>/docs/`. |
 | 3 | Resolve ambiguities | Requirements Planner | Brief | Numbered questions on **Jira** + `docs/ambiguity-log.md` | Every blocking gap has a reply from a **human**. Log updated after each reply. No silent defaults for business rules. |
@@ -201,38 +199,35 @@ Defined as Cursor project subagents in `.cursor/agents/`. The orchestrator launc
 
 ## Runtime wiring
 
-### Cursor Cloud Agent (Jira webhooks)
+### Cursor Cloud Agent (Jira webhook)
 
-Needed tools on the automations:
+Needed tools on the automation:
 
-- Jira MCP (fetch issue + download attachment + **comment**)
-- Git checkout of this repo; create/push branch `poc/<KEY>`
-- `gh` for one PR after Vitest
+- Jira MCP (fetch issue + download attachment + **comment** + transition to **In Review**)
+- Git checkout of this repo; create/push branch `poc/<KEY>` (including `docs/run-state.json`)
+- **Open Pull Request** and/or `gh` for one PR after Vitest
 
-Automations:
+Automation:
 
-1. **IRFP — Start on Jira Ready**
-   - Event: webhook (Ready + RFP attachment)
-   - Prompt: resolve issue key → fetch attachment → analyze → comment questions/plan on **Jira**
-   - Do not write app code
-2. **IRFP — Continue on Jira comment**
-   - Event: comment added on the user story
-   - Prompt: ignore the automation account and `**[IRFP POC Creator]**`; apply answers; update `pocs/<JIRA-KEY>/docs/`; on `/approve`, generate → review → Vitest → push / create PR once
+1. **IRFP — Ready for POC**
+   - Event: webhook (status → **Ready for POC**)
+   - Prompt: [`automations/start.md`](automations/start.md) → orchestrator skill First fetch or Resume
+   - After questions: push durable state, status → **In Review**; on `/approve`, generate → review → Vitest → PR once
 
-Do **not** attach a “code pushed” trigger to the Start flow.
+Do **not** attach a “code pushed” or “comment created” trigger as the primary Cloud path.
 
 ### Cursor slash commands (local / chat)
 
-Same gates as Cloud Agent Continue. Type `/` in Cursor chat. Catalog: `docs/commands.md`.
+Same orchestrator skill as Cloud Agent Ready for POC. Type `/` in Cursor chat. Catalog: `docs/commands.md`.
 
-The human who runs the command is the operator. Mirror comments to Jira when the issue key and MCP are available. Docs under `pocs/<KEY>/docs/` stay canonical.
+The human who runs the command is the operator. Mirror comments to Jira when the issue key and MCP are available. Docs under `pocs/<KEY>/docs/` stay canonical (including `run-state.json`).
 
 ### Cursor project hooks
 
 | Hook intent | Event | Behaviour |
 | --- | --- | --- |
 | RFP exists before analyst | `subagentStart` | Deny if no `mark-rfp-fetched` stamp |
-| TASK PLAN approved before Developer | Skills + `mark-approved` | Required before generate. Hook script exists but is **unregistered** in `hooks.json` for now. |
+| TASK PLAN approved before Developer | Skills + `mark-approved` + `approve-before-developer` hook | Required before generate |
 | Unit tests pass before submit | `beforeShellExecution` on `git commit` / `git push` | Deny unless Vitest passed; docs-only commits allowed |
 | Protect orchestrator files | `preToolUse` / `afterFileEdit` | Deny writes outside `pocs/<JIRA-KEY>/` after generate phase |
 | No external URLs in POC | `preToolUse` / `afterFileEdit` | Deny `http(s)` and `next/font/google` in POC UI/markdown |
@@ -250,6 +245,7 @@ Must be able to:
 - List attachments
 - Download the chosen RFP file
 - Comment on the issue (`addOrEditJiraIssueComment`)
+- List transitions and move the issue to **In Review** only
 
 If the attachment is not plain text (PDF, DOCX, and so on), the analyst still extracts description, capabilities, UI requirements, and UI direction. If it cannot read the file, it comments on Jira and stops.
 
@@ -275,12 +271,14 @@ Apply when the RFP is silent. If the RFP names a different framework or UI kit, 
 /.cursor/                            project hooks, skills, agents, slash commands
 /.cursor/commands/                   see `docs/commands.md`
 /pocs/PROJ-123/                      generated app for that Jira key
+/pocs/PROJ-123/docs/run-state.json   durable pipeline state (qaLoopCount, approved, …)
 /pocs/PROJ-123/docs/rfp-brief.md     extracted capabilities, UI requirements, UI direction, framework, non-goals
 /pocs/PROJ-123/docs/ambiguity-log.md questions + human answers (updated as replies arrive)
 /pocs/PROJ-123/docs/technical-plan.md stack, screens, routes, local data, Vitest checks
 /pocs/PROJ-123/docs/task-plan.md     ordered task list (must match approved `/approve` comment)
 /pocs/PROJ-123/docs/review-report.md pass/fail vs hard rules
 /pocs/PROJ-123/docs/test-report.md   Vitest command, counts, failures
+/pocs/PROJ-123/.run/rfp/             gitignored RFP bytes (re-download per Cloud run)
 /pocs/PROJ-123/…                     app source + Vitest files
 ```
 
@@ -292,6 +290,7 @@ The Developer writes only under `pocs/<JIRA-KEY>/`. Merging a PR may leave that 
 
 | File | Owner step | Contents |
 | --- | --- | --- |
+| `docs/run-state.json` | Orchestrator CLI | Durable phase, `qaLoopCount`, approval/Vitest stamps |
 | `docs/rfp-brief.md` | Analyze RFP | Capabilities, UI requirements, UI direction, chosen framework, explicit non-goals |
 | `docs/ambiguity-log.md` | Resolve ambiguities | Questions, human answers, timestamps |
 | `docs/technical-plan.md` | Plan technical requirements | Stack, screens, local data, APIs |
@@ -302,7 +301,7 @@ The Developer writes only under `pocs/<JIRA-KEY>/`. Merging a PR may leave that 
 
 ## In scope / out of scope
 
-**In scope:** Jira Ready + RFP attachment → analyze → Jira-comment Q&A with a human → approve → generate under `pocs/<JIRA-KEY>/` → review → Vitest → push `poc/<JIRA-KEY>` and open **one** GitHub PR.
+**In scope:** Jira **Ready for POC** + RFP attachment → analyze → status-loop Q&A (In Review ↔ Ready for POC, max 3) → `/approve` → generate under `pocs/<JIRA-KEY>/` → review → Vitest → push `poc/<JIRA-KEY>` and open **one** GitHub PR.
 
 **Out of scope unless you add it:**
 

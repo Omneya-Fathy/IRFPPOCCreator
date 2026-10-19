@@ -4,7 +4,7 @@ description: Approve the IRFP TASK PLAN and run generate → review → Vitest �
 
 You are recording **operator approval** of the IRFP task list, equivalent to a human `/approve` comment on Jira.
 
-Read `.cursor/skills/irfp-orchestrator/SKILL.md`. Follow `AGENTS.md` and `Readme.md` hard rules.
+Follow `.cursor/skills/irfp-orchestrator/SKILL.md` **Generate after `/approve`**. Do not re-read `Readme.md`.
 
 Optional arguments (Jira key or notes — notes are not extra scope):
 $ARGUMENTS
@@ -15,10 +15,10 @@ Jira key from arguments, else current branch / `pocs/` run. If missing, ask and 
 
 ## Gate
 
-1. `node scripts/irfp.mjs status --key <KEY>`.
-2. Require `pocs/<KEY>/docs/task-plan.md` and `docs/technical-plan.md`. If blocking questions in `ambiguity-log.md` are still open, stop — use `/irfp-answer` first.
+1. `node scripts/irfp.mjs status --key <KEY>` (reads `docs/run-state.json`).
+2. Require `pocs/<KEY>/docs/task-plan.md` and `docs/technical-plan.md`. If blocking questions in `ambiguity-log.md` are still open, stop — use `/irfp-answer` first. If `humanReviewRequired` is true and questions remain unresolved, stop until a human resets with `mark-qa-loop --count 0` or clears gaps.
 3. Only the human who invoked this command may approve in Cursor. Do not approve from memory or from an agent-written “looks good”.
-4. `node scripts/irfp.mjs mark-approved --key <KEY>`.
+4. `node scripts/irfp.mjs mark-approved --key <KEY>`; commit/push `docs/run-state.json` on `poc/<KEY>` when working with Cloud later.
 5. Comment `/approve` on **Jira** as the operator record when MCP is available. Continue even if comment fails; the stamp is the gate.
 
 ## Generate

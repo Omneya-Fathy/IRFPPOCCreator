@@ -12,7 +12,7 @@ Stop the RFP Analyst until a Jira RFP has been fetched for this run.
 
 ## Policy
 
-Requires `state.json` `rfpFetched: true` or `pocs/<JIRA-KEY>/.run/rfp-fetched.json` (written by `node scripts/irfp.mjs mark-rfp-fetched --key <KEY> --files <names>`).
+Requires `docs/run-state.json` (or mirrored `.run/state.json`) with `rfpFetched: true`, or `pocs/<JIRA-KEY>/.run/rfp-fetched.json` (written by `node scripts/irfp.mjs mark-rfp-fetched --key <KEY> --files <names>`).
 
 ## Blocks
 

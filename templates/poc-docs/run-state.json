@@ -1,0 +1,15 @@
+{
+  "key": "PROJ-123",
+  "phase": "init",
+  "rfpFetched": false,
+  "attachments": [],
+  "selectedAttachments": [],
+  "approved": false,
+  "vitestPassed": false,
+  "branch": "poc/PROJ-123",
+  "prNumber": null,
+  "jiraCloudId": null,
+  "qaLoopCount": 0,
+  "humanReviewRequired": false,
+  "updatedAt": null
+}

@@ -1,0 +1,15 @@
+{
+  "key": "SCRUM-6",
+  "phase": "complete",
+  "rfpFetched": true,
+  "attachments": [],
+  "selectedAttachments": [],
+  "approved": true,
+  "vitestPassed": true,
+  "branch": "poc/SCRUM-6",
+  "prNumber": null,
+  "jiraCloudId": null,
+  "qaLoopCount": 0,
+  "humanReviewRequired": false,
+  "updatedAt": "2026-10-19T13:00:00.000Z"
+}

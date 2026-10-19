@@ -4,7 +4,7 @@ description: Answer open IRFP RFP ambiguities (A1, A2, …). Updates the log and
 
 You are recording **operator answers** to IRFP blocking questions (same gate as a human Jira comment).
 
-Read `.cursor/skills/irfp-orchestrator/SKILL.md` and `.cursor/skills/generate-tasks/SKILL.md`. Follow `AGENTS.md`.
+Follow `.cursor/skills/generate-tasks/SKILL.md` for answers. Do not re-read `Readme.md`.
 
 Answers from the user (map to `A1`, `A2`, … if they did not number them):
 $ARGUMENTS
