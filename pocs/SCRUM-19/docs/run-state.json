@@ -1,6 +1,6 @@
 {
   "key": "SCRUM-19",
-  "phase": "awaiting-answers",
+  "phase": "plan",
   "rfpFetched": true,
   "attachments": [
     "RFP_TravelAgency.html"
@@ -15,5 +15,5 @@
   "jiraCloudId": null,
   "qaLoopCount": 1,
   "humanReviewRequired": false,
-  "updatedAt": "2026-10-19T15:09:27.764Z"
+  "updatedAt": "2026-10-20T07:20:08.245Z"
 }
